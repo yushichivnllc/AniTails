@@ -49,7 +49,7 @@
       "headphone": "",
       "default": ["", "", ""]
     },
-    "on-click": "kitty --single-instance -e pulsemixer",
+    "on-click": "pavucontrol",
     "scroll-step": 2
   },
 
