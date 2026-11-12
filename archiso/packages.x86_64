@@ -58,20 +58,23 @@ python-certifi
 # --- Mandatory Access Control & Application Sandboxing ---
 apparmor
 bubblewrap
+sudo
 xdg-desktop-portal
+xdg-desktop-portal-gtk
 
 # --- Open-Source KMS / Mesa / NVK Graphics Baseline ---
 # The desktop is Hyprland (wlroots) on Wayland; there is no X11 session and no
 # display manager. Mesa/NVK/llvmpipe are still what drives every GPU tier.
 mesa
 libglvnd
+xorg-xwayland
+qt6-wayland
 vulkan-icd-loader
 vulkan-nouveau
 vulkan-intel
 vulkan-radeon
 switcheroo-control
 vulkan-swrast
-xorg-xwayland
 
 # --- Wayland Compositor: Hyprland + AniDE/HyDE dotfiles ---
 # See docs/HYDE_INTEGRATION.md for the component-by-component mapping and for
@@ -133,9 +136,7 @@ gtk4
 
 # --- Session Integration / Portals / Theming ---
 xdg-desktop-portal-hyprland
-xdg-desktop-portal-gtk
 qt5-wayland
-qt6-wayland
 qt5ct
 qt6ct
 kvantum

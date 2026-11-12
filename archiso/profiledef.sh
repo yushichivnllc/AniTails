@@ -65,6 +65,7 @@ file_permissions=(
   ["/usr/local/lib/anitails-swapon-disabled"]="0:0:0755"
   ["/usr/local/lib/anitails-udev-watchdog-wrapper"]="0:0:0755"
   ["/usr/local/lib/anitails-unblock-network"]="0:0:0755"
+  ["/usr/local/lib/anitails-virtio-boot-status"]="0:0:0755"
   ["/etc/profile.d/99-anitails-session.sh"]="0:0:0644"
   ["/etc/systemd/system/getty@tty1.service.d"]="0:0:0755"
   ["/etc/systemd/system/getty@tty1.service.d/20-anitails-autologin.conf"]="0:0:0644"

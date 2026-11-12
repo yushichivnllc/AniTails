@@ -6,18 +6,24 @@
 # In Arch `mkarchiso` (92-1), `airootfs/` is copied BEFORE `pacstrap`! Consequently,
 # packages installed during `pacstrap` may write `.pacnew` files, regenerate CA bundles,
 # install `/usr/bin/swapon`, or reset systemd presets.
-# This idempotent ALPM PostTransaction hook runs last (`zz-99-*`) to enforce every
-# security invariant deterministically before SquashFS creation.
+# Triggered via `/etc/pacman.d/hooks/zz-99-anitails-finalize.hook` (`mkarchiso` HookDir).
 set -euo pipefail
+trap 'echo "ERROR: anitails-alpm-finalize failed at line ${LINENO}: ${BASH_COMMAND}" >&2' ERR
 
-# 1. Neutralize swapon binary (defense-in-depth alongside masked swap.target)
+echo "[anitails-finalize] 1/9 Neutralizing swapon..."
 if [[ -x /usr/bin/swapon && ! -f /usr/bin/swapon.util-linux.disabled ]]; then
     mv /usr/bin/swapon /usr/bin/swapon.util-linux.disabled
     install -m 0755 /usr/local/lib/anitails-swapon-disabled /usr/bin/swapon
 fi
 
-# 2. Rebuild CA trust store with AniTails p11-kit eMudhra + Sectigo AAA cross-sign blacklist,
-#    then audit `/etc/ssl/certs/ca-certificates.crt` (fail build immediately on any leak!)
+echo "[anitails-finalize] 2/9 Rebuilding & auditing CA trust store (p11-kit blocklist)..."
+if [[ -f /etc/ca-certificates/trust-source/blacklist/anitails-emudhra-distrust.p11-kit ]]; then
+    install -d -m 0755 /etc/ca-certificates/trust-source/blocklist
+    cp -f /etc/ca-certificates/trust-source/blacklist/anitails-emudhra-distrust.p11-kit \
+          /etc/ca-certificates/trust-source/blocklist/anitails-emudhra-distrust.p11-kit
+    cp -f /etc/ca-certificates/trust-source/blacklist/anitails-emudhra-distrust.p11-kit \
+          /etc/ca-certificates/trust-source/anitails-emudhra-distrust.p11-kit
+fi
 if [[ -x /usr/bin/update-ca-trust ]]; then
     /usr/bin/update-ca-trust
 fi
@@ -25,15 +31,19 @@ if [[ -x /usr/local/bin/anitails-verify-truststore && -f /etc/ssl/certs/ca-certi
     /usr/local/bin/anitails-verify-truststore --bundle /etc/ssl/certs/ca-certificates.crt
 fi
 
-# 3. Generate kernel module NIC blocklist across Arch compressed *.ko.zst drivers
+echo "[anitails-finalize] 3/9 Generating *.ko.zst pre-session NIC blacklist..."
 if [[ -x /usr/local/lib/anitails-unblock-network ]]; then
     /usr/local/lib/anitails-unblock-network generate-blacklist
 fi
 
-# 4. Verify the vendored AniDE/HyDE dotfiles against their SHA-256 manifest.
-#    The ISO carries no GNOME/dconf database any more; the desktop is Hyprland
-#    with the dotfiles seeded from /usr/share/anitails/hyde by
-#    anitails-hyde-seed at session start. Fail the build on any mismatch.
+echo "[anitails-finalize] 4/9 Compiling UTF-8 locales & verifying the desktop dotfiles..."
+ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+if [[ -x /usr/bin/locale-gen && -f /etc/locale.gen ]]; then
+    /usr/bin/locale-gen
+fi
+# No GDM/GNOME dconf database: the desktop is Hyprland with the vendored
+# AniDE/HyDE dotfiles, seeded into $HOME from /usr/share/anitails/hyde by
+# anitails-hyde-seed at session start. Fail the build on any manifest mismatch.
 if [[ -f /usr/share/anitails/hyde/MANIFEST.sha256 ]]; then
     ( cd /usr/share/anitails/hyde && /usr/bin/sha256sum -c --quiet MANIFEST.sha256 ) || {
         echo "FATAL: vendored HyDE dotfiles do not match MANIFEST.sha256" >&2
@@ -44,10 +54,14 @@ else
     exit 1
 fi
 
-# 5. Mask forbidden services (swap, sshd, clearnet NTP/DNS resolvers, NVIDIA sleep/VRAM-dump/daemon units)
+echo "[anitails-finalize] 5/9 Masking forbidden services & neutralizing static nouveau blocklists..."
 ln -sf /dev/null /etc/systemd/system/swap.target
 ln -sf /dev/null /etc/systemd/system/sshd.service
 ln -sf /dev/null /etc/systemd/system/sshd.socket
+ln -sf /dev/null /etc/systemd/system/systemd-firstboot.service
+ln -sf /dev/null /etc/systemd/system/systemd-loop@.service
+ln -sf /dev/null /etc/systemd/system/systemd-networkd.service
+ln -sf /dev/null /etc/systemd/system/systemd-networkd.socket
 ln -sf /dev/null /etc/systemd/system/systemd-timesyncd.service
 ln -sf /dev/null /etc/systemd/system/systemd-resolved.service
 ln -sf /dev/null /etc/systemd/system/nvidia-persistenced.service
@@ -56,13 +70,10 @@ ln -sf /dev/null /etc/systemd/system/nvidia-hibernate.service
 ln -sf /dev/null /etc/systemd/system/nvidia-resume.service
 ln -sf /dev/null /etc/systemd/system/nvidia-suspend-then-hibernate.service
 
-# 5b. Neutralize static `blacklist nouveau` & `/var/tmp` VRAM dump path from nvidia-utils(.conf) if present
-#     so `anitails-gpu-select` dynamically dispatches `nvidia` vs `nouveau` vs `simpledrm` in `/run/modprobe.d`
-#     without breaking fallback on pre-Turing GPUs!
 for nv_modconf in /usr/lib/modprobe.d/nvidia-utils.conf /usr/lib/modprobe.d/nvidia-580xx-utils.conf /usr/lib/modprobe.d/nvidia.conf; do
     if [[ -f "${nv_modconf}" ]]; then
         cat > "${nv_modconf}" <<'EOF'
-# Neutralized by AniTailszz-99-anitails-finalize.hook:
+# Neutralized by AniTails zz-99-anitails-finalize.hook:
 # Static `blacklist nouveau` and `NVreg_TemporaryFilePath=/var/tmp` removed to preserve
 # pre-Turing nouveau fallback and prevent VRAM persistence on disk.
 # Dynamic dispatch is managed in /run/modprobe.d/10-anitails-gpu.conf by anitails-gpu-select.
@@ -72,10 +83,14 @@ EOF
     fi
 done
 
-# 6. Enable mandatory security, GPU fallback guard & desktop units
-mkdir -p /etc/systemd/system/multi-user.target.wants \
+echo "[anitails-finalize] 6/9 Enabling mandatory security, GPU guard & Hyprland session units..."
+mkdir -p /etc/systemd/system/graphical.target.wants \
+         /etc/systemd/system/multi-user.target.wants \
          /etc/systemd/system/sysinit.target.wants \
-         /etc/systemd/system/local-fs.target.wants
+         /etc/systemd/system/local-fs.target.wants \
+         /etc/systemd/system-generators
+ln -sf /dev/null /etc/systemd/system-generators/systemd-gpt-auto-generator
+ln -sf /usr/lib/systemd/system/graphical.target /etc/systemd/system/default.target
 ln -sf /usr/lib/systemd/system/nftables.service /etc/systemd/system/multi-user.target.wants/nftables.service
 ln -sf /usr/lib/systemd/system/apparmor.service /etc/systemd/system/multi-user.target.wants/apparmor.service
 ln -sf /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/multi-user.target.wants/NetworkManager.service
@@ -91,26 +106,33 @@ ln -sf /etc/systemd/system/anitails-onion-grater.service /etc/systemd/system/mul
 ln -sf /etc/systemd/system/run-initramfs.mount /etc/systemd/system/local-fs.target.wants/run-initramfs.mount
 ln -sf /etc/systemd/system/anitails-initramfs-restore.service /etc/systemd/system/multi-user.target.wants/anitails-initramfs-restore.service
 ln -sf /etc/systemd/system/anitails-remove-overlayfs-dirs.service /etc/systemd/system/multi-user.target.wants/anitails-remove-overlayfs-dirs.service
-ln -sf /etc/systemd/system/anitails-shutdown-on-media-removal.service /etc/systemd/system/multi-user.target.wants/anitails-shutdown-on-media-removal.service
+ln -sf /etc/systemd/system/anitails-shutdown-on-media-removal.service /etc/systemd/system/graphical.target.wants/anitails-shutdown-on-media-removal.service
+ln -sf /etc/systemd/system/anitails-virtio-boot-status.service /etc/systemd/system/sysinit.target.wants/anitails-virtio-boot-status.service
 
-# 7. Ensure reproducible empty /etc/machine-id (populated in RAM at boot without re-running systemd preset)
-: > /etc/machine-id
-
-# 8. Remove any stray .pacnew files and enforce post-pacstrap directory/file permissions
+echo "[anitails-finalize] 7/9 Cleaning .pacnew files & enforcing amnesia/Tor directory permissions..."
 find /etc -name "*.pacnew" -delete 2>/dev/null || true
-install -d -m 0700 -o 43 -g 43 /var/lib/tor
+if [[ -d /home/amnesia ]]; then
+    chown -R 1000:1000 /home/amnesia
+    chmod 0700 /home/amnesia
+    [[ -d /home/amnesia/.gnupg ]] && chmod 0700 /home/amnesia/.gnupg
+fi
+TOR_UID="$(id -u tor 2>/dev/null || echo 43)"
+TOR_GID="$(id -g tor 2>/dev/null || echo 43)"
+install -d -m 0700 -o "${TOR_UID}" -g "${TOR_GID}" /var/lib/tor
 install -d -m 0755 -o 0 -g 0 /usr/share/anitails/hyde
 # The dotfile tree is read-only by design: the seeder copies it into $HOME.
 find /usr/share/anitails/hyde -type d -exec chmod 0755 {} +
 find /usr/share/anitails/hyde -type f ! -perm -u+x -exec chmod 0644 {} +
 install -d -m 0750 -o 0 -g 0 /etc/polkit-1/rules.d
 if [[ -f /etc/tor/torrc ]]; then
-    chown 0:43 /etc/tor/torrc
+    chown "0:${TOR_GID}" /etc/tor/torrc
     chmod 0640 /etc/tor/torrc
 fi
 
-# 9. Rebuild initramfs after NIC blocklist generation and NVIDIA modprobe neutralization
-#    so early-boot `modconf`/`kms` hooks inside initramfs-linux-anitails.img match airootfs
+echo "[anitails-finalize] 8/9 Rebuilding initramfs-linux-anitails.img..."
 if [[ -x /usr/bin/mkinitcpio ]] && compgen -G "/usr/lib/modules/*/vmlinuz" >/dev/null; then
     /usr/bin/mkinitcpio -P
 fi
+
+echo "[anitails-finalize] 9/9 Marking airootfs finalization complete."
+touch /etc/anitails-finalized

@@ -255,6 +255,10 @@ jobs:
             ' 2>&1 | tee /tmp/anitails-docker-build.log || {
               rc=$?
               sudo chown -R "${HOST_UID}:${HOST_GID}" /tmp/anitails-ci-cache 2>/dev/null || true
+              err_lines="$(grep -iE 'error:|failed|fatal|corrupt|invalid|conflict|unable' /tmp/anitails-docker-build.log | tail -n 20 | sed 's/%/%25/g; s/\r/%0D/g; :a;N;$!ba;s/\n/%0A/g' || true)"
+              if [[ -n "${err_lines}" ]]; then
+                echo "::error title=ISO Build Matched Errors::${err_lines}"
+              fi
               tail_msg="$(tail -n 35 /tmp/anitails-docker-build.log | sed 's/%/%25/g; s/\r/%0D/g; :a;N;$!ba;s/\n/%0A/g')"
               echo "::error title=ISO Build Log Tail::${tail_msg}"
               exit "${rc}"
@@ -269,6 +273,15 @@ jobs:
             /tmp/anitails-ci-cache/sources
             /tmp/anitails-ci-cache/pkgs
           key: anitails-pkgcache-v2-${{ matrix.profile }}-${{ hashFiles('pkgbuilds/**/PKGBUILD', 'pkgbuilds/linux-anitails/config.anitails.fragment', 'archiso/snapshot.lock.json') }}-${{ github.run_id }}
+
+      - name: Boot-test built ISO end-to-end in QEMU (Legacy BIOS + UEFI OVMF -> GDM amnesia session)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr libarchive-tools
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 0666 /dev/kvm
+          fi
+          ./scripts/ci-boot-test-iso.sh --out-dir out --timeout 240
 
       - name: Publish ISO checksums & offline HSM signing instructions to Job Summary
         run: |
