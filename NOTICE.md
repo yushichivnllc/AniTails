@@ -12,7 +12,15 @@
 - Toàn bộ mã nguồn, cấu hình hệ thống, script điều phối, công cụ kiểm định mật mã và bộ kiểm thử mới của **AniTails** trong các thư mục `archiso/`, `pkgbuilds/`, `scripts/`, `tests/` và `docs/` được phát hành theo giấy phép **GNU General Public License phiên bản 3 trở lên (`GPL-3.0-or-later`)**, giữ nguyên đầy đủ thông báo bản quyền của các tác giả gốc đối với những thành phần được chuyển dịch từ Tails.
 - Dữ liệu chứng chỉ kiểm thử công khai trong `tests/fixtures/emudhra_chains/` được trích từ kho kiểm chứng bảo mật công cộng `github.com/galadran/we-have-a-problem.com` (giấy phép Apache-2.0) phục vụ mục đích duy nhất là kiểm thử tự động việc từ chối chuỗi chứng chỉ bị xâm phạm.
 
-## 3. Ranh Giới Giấy Phép Đối Với Thành Phần Firmware & Profile Tùy Chọn NVIDIA
+## 3. Dotfiles Giao Diện AniDE/HyDE (GPL-3.0-only)
+
+- Thư mục `archiso/airootfs/usr/share/anitails/hyde/` chứa bản sao tĩnh (vendored) của **dotfiles dự án [AniDE](https://github.com/hyprdes/AniDE)** — bản fork của **[HyDE](https://github.com/HyDE-Project/HyDE)** — tại commit `6d441fcb076954a7c64d19296454a4c14a4c61e1` (`v26.8.1`), giấy phép **`GPL-3.0-only`** (bản sao giấy phép gốc được giữ nguyên tại `archiso/airootfs/usr/share/anitails/hyde/LICENSE`).
+- Bản quyền các tệp cấu hình, script shell/Python và giao diện thuộc về The HyDE Project và các cộng tác viên tương ứng; xem `CONTRIBUTORS.md` của dự án gốc.
+- Các tệp trong `archiso/hyde-overrides/` do AniTails viết thêm và phát hành theo `GPL-3.0-or-later`.
+- AniTails **không** phân phối các binary dựng sẵn `hydectl`, `hyde-ipc`, cũng không phân phối gói AUR (`quickshell`, `hyprquery`, `wlogout`); xem `docs/HYDE_INTEGRATION.md`.
+- Ghi công kỹ thuật: giao diện Hyprland, cấu hình Lua/TOML, bộ script `hyde-shell` và hệ thống theme Wallbash thuộc dự án HyDE/AniDE.
+
+## 4. Ranh Giới Giấy Phép Đối Với Thành Phần Firmware & Profile Tùy Chọn NVIDIA
 
 - **Profile mặc định (`base`):** Chỉ sử dụng các trình điều khiển nhân và không gian người dùng mã nguồn mở (`nouveau` theo `GPL-2.0-only`, Mesa / `vulkan-nouveau` `NVK` theo `MIT`), đi kèm firmware vi điều khiển phần cứng đã ký số trong gói chính thức `linux-firmware-nvidia` (`LicenseRef-WHENCE` / `LicenseRef-nvidia`). **Không cài đặt bất kỳ thư viện không gian người dùng độc quyền nào của NVIDIA trong bản mặc định.**
 - **Các Profile tùy chọn (`nvidia-modern`, `nvidia-legacy-580xx`, `nvidia-cuda-optional`):**

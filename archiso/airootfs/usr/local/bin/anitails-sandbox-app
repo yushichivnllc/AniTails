@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # AniTails Offline Bubblewrap Sandbox Wrapper for Media & Document Viewers
-# Used for Celluloid (replacing Totem per Tails 7.10), Papers (PDF), and Loupe (Images):
+# Used for Celluloid (replacing Totem per Tails 7.10), Zathura (PDF) and imv (images):
+# (Totem/Loupe/Papers of the old GNOME desktop were dropped in favour of Wayland-native pars.)
 # Enforces `--unshare-net` (zero network interfaces, not even Tor SOCKS!) so malicious
 # media/PDF exploits cannot exfiltrate files over the network.
 set -euo pipefail

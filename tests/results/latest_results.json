@@ -1,8 +1,8 @@
 {
-  "executed_at_utc": "2026-11-08",
-  "duration_seconds": 7.915,
-  "unit_and_simulation_tests_total": 22,
-  "unit_and_simulation_tests_passed": 22,
+  "executed_at_utc": "2026-11-12",
+  "duration_seconds": 9.845,
+  "unit_and_simulation_tests_total": 38,
+  "unit_and_simulation_tests_passed": 38,
   "unit_and_simulation_tests_failed": 0,
   "environment_gates": [
     {
@@ -10,7 +10,7 @@
       "severity": "P0",
       "status": "BLOCKED",
       "command": "unshare -Urn /usr/sbin/nft -c -f archiso/airootfs/etc/nftables.conf",
-      "detail": "Host sandbox kernel (6.1.158+) does not compile CONFIG_NF_TABLES (/home/user/AniTails/archiso/airootfs/etc/nftables.conf:21:1-2: Error: Could not process rule: Operation not supported). Run `nft -c -f archiso/airootfs/etc/nftables.conf` on an Arch Linux 7.3.3 host/VM."
+      "detail": "Host sandbox kernel (6.1.158+) does not compile CONFIG_NF_TABLES (/home/user/AniTails/archiso/airootfs/etc/nftables.conf:23:1-2: Error: Could not process rule: Operation not supported). Run `nft -c -f archiso/airootfs/etc/nftables.conf` on an Arch Linux 7.3.3 host/VM."
     },
     {
       "id": "GATE-PKGBUILD-BUILD",

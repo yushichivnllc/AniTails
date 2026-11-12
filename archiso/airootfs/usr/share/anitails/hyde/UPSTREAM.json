@@ -1,0 +1,33 @@
+{
+  "project": "AniDE (HyDE fork)",
+  "repository": "https://github.com/hyprdes/AniDE",
+  "upstream_project": "https://github.com/HyDE-Project/HyDE",
+  "license": "GPL-3.0-only",
+  "commit": "6d441fcb076954a7c64d19296454a4c14a4c61e1",
+  "commit_date": "2026-11-12T07:18:15+07:00",
+  "commit_subject": "Merge pull request #14 from hyprdes/arena/31c1f107-anide",
+  "dotfiles_version": "v26.8.1",
+  "vendored_at_utc": "2026-11-12T05:47:42Z",
+  "vendored_files": 476,
+  "excluded_paths": [
+    "Configs/.config/dconf",
+    "Configs/.config/Code",
+    "Configs/.config/Code - OSS",
+    "Configs/.config/VSCodium",
+    "Configs/.local/state",
+    "Configs/.local/bin/hydectl",
+    "Configs/.local/bin/hyde-ipc",
+    "Configs/.config/zsh/completions/hydectl.zsh"
+  ],
+  "anitails_overrides": {
+    "overrides/.config/hyde/config.toml": "AniTails desktop defaults (Tor Browser, Waybar fallback, no lock)",
+    "overrides/.config/hypr/hyprland.lua": "upstream hyprland.lua + `require('anitails')` hook",
+    "overrides/.config/hypr/anitails.lua": "AniTails keybinds, wallpaper and bar bootstrap",
+    "overrides/.config/hypr/hypridle.conf": "no lock listener (live user has a locked password)"
+  },
+  "notes": [
+    "Only the Configs/ tree is vendored; Scripts/ (installer, deez-dots, AUR helpers) is not.",
+    "Prebuilt binaries hydectl and hyde-ipc are excluded on purpose (no opaque blobs).",
+    "AniTails never runs the upstream installer at runtime; anitails-hyde-seed copies files offline."
+  ]
+}

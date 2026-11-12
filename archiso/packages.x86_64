@@ -59,9 +59,10 @@ python-certifi
 apparmor
 bubblewrap
 xdg-desktop-portal
-xdg-desktop-portal-gnome
 
-# --- GNOME Desktop Environment & Open-Source KMS/Mesa/NVK Graphics Baseline ---
+# --- Open-Source KMS / Mesa / NVK Graphics Baseline ---
+# The desktop is Hyprland (wlroots) on Wayland; there is no X11 session and no
+# display manager. Mesa/NVK/llvmpipe are still what drives every GPU tier.
 mesa
 libglvnd
 vulkan-icd-loader
@@ -69,32 +70,118 @@ vulkan-nouveau
 vulkan-intel
 vulkan-radeon
 switcheroo-control
-gdm
-gnome-shell
-gnome-session
-gnome-control-center
-gnome-console
-gnome-keyring
-gnome-text-editor
-gnome-calculator
-gnome-disk-utility
-nautilus
-loupe
-papers
-celluloid
-wl-clipboard
-xdg-user-dirs-gtk
-zenity
+vulkan-swrast
+xorg-xwayland
+
+# --- Wayland Compositor: Hyprland + AniDE/HyDE dotfiles ---
+# See docs/HYDE_INTEGRATION.md for the component-by-component mapping and for
+# the AUR-only HyDE pieces that AniTails deliberately does not ship.
+hyprland
+uwsm
+hyprlock
+hypridle
+hyprsunset
+hyprpaper
+hyprpicker
+hyprpolkitagent
+lua
+luarocks
+libgirepository
+polkit
+
+# --- Desktop Shell: bar, launcher, notifications, clipboard, screenshots ---
+waybar
+rofi-wayland
+dunst
 libnotify
-hunspell
-hunspell-en_us
-noto-fonts
-ttf-dejavu
-cantarell-fonts
+cliphist
+wl-clip-persist
+wl-clipboard
+grim
+slurp
+satty
+xwaylandvideobridge
+
+# --- Terminals, Files, Editors & Media (Wayland-native) ---
+kitty
+dolphin
+ark
+kde-cli-tools
+ffmpegthumbs
+qt5-imageformats
+kimageformats
+kate
+mpv
+celluloid
+imv
+zathura
+zathura-pdf-mupdf
+qalculate-qt
+vim
+unzip
+fzf
+jq
+curl
+imagemagick
+parallel
+pacman-contrib
+xdg-user-dirs
+xdg-utils
+file
+gtk3
+gtk4
+
+# --- Session Integration / Portals / Theming ---
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+qt5-wayland
+qt6-wayland
+qt5ct
+qt6ct
+kvantum
+kvantum-qt5
+nwg-look
+nwg-displays
+adwaita-icon-theme
+bibata-cursor-theme
+xsettingsd
+
+# --- Audio / Bluetooth / Power / Removable Media Applets ---
 pipewire
 pipewire-pulse
+pipewire-alsa
+pipewire-audio
+pipewire-jack
+gst-plugin-pipewire
 wireplumber
 alsa-utils
+pavucontrol
+pamixer
+playerctl
+bluez
+bluez-utils
+blueman
+brightnessctl
+udiskie
+network-manager-applet
+cava
+
+# --- Input Methods (Vietnamese support) ---
+ibus
+ibus-unikey
+
+# --- Desktop Userland Libraries & Fonts ---
+python-pyqt6
+python-pulsectl
+python-requests
+zenity
+noto-fonts
+noto-fonts-emoji
+ttf-dejavu
+ttf-jetbrains-mono-nerd
+cantarell-fonts
+hunspell
+hunspell-en_us
 
 # --- Privacy & User Productivity Tools (Tails 7.x aligned; NO Pidgin, NO Synaptic, NO Unsafe Browser) ---
 keepassxc

@@ -28,6 +28,18 @@ Tài liệu này mô tả chi tiết kiến trúc kỹ thuật của **AniTails*
         └── anitails-shutdown-on-media-removal.service: giám sát uevent rút USB khởi động -> tắt máy khẩn cấp + xóa RAM
 ```
 
+Sau khi `multi-user.target` hoàn tất, phiên đồ họa được dựng **không qua display manager**:
+
+```text
+getty@tty1 (+ 20-anitails-autologin.conf: --autologin amnesia)
+   └── login shell → /etc/profile.d/99-anitails-session.sh
+        └── anitails-hyprland-session
+             ├── anitails-hyde-seed (xác minh SHA-256 của dotfiles AniDE/HyDE rồi mới seed $HOME)
+             └── uwsm start hyprland-uwsm.desktop → Hyprland + HyDE
+```
+
+Xem chi tiết tại [`HYDE_INTEGRATION.md`](HYDE_INTEGRATION.md).
+
 ---
 
 ## 2. Sáu Lớp Phòng Thủ Chiều Sâu (Defense-in-Depth)
@@ -70,5 +82,36 @@ Tài liệu này mô tả chi tiết kiến trúc kỹ thuật của **AniTails*
 - **Ở pha cuối tắt máy (`systemd-shutdown` trên `ramfs` `/run/initramfs`):** Tác vụ `/usr/local/lib/anitails-shutdown-ram-wipe` đồng bộ và đóng các thiết bị LUKS2 còn mở, xóa bộ nhớ đệm trang (`drop_caches=3`), cấp phát và ghi đè bộ nhớ trống trong RAM để xóa tàn dư khóa phiên trước khi ngắt nguồn phần cứng.
 
 ### 2.6. Hộp Cát Ứng Dụng & Lưu Trữ Bền Vững Tùy Chọn (`bwrap` + `AppArmor` + `LUKS2`)
-- **Hộp cát ứng dụng:** Tor Browser chạy trong không gian tên người dùng/PID/mount/IPC/UTS bị cô lập của `bubblewrap` (`--unshare-all --new-session`), chỉ gắn kết thư mục `/home/amnesia/Tor Browser` và `/home/amnesia/Persistent/Tor Browser` (không nhìn thấy `.gnupg`, `.ssh`, `.electrum`), đi qua mạng duy nhất của netns `tbb` và chịu sự kiểm soát của hồ sơ AppArmor. Các ứng dụng xem đa phương tiện/tài liệu (`celluloid`, `loupe`, `evince`, `libreoffice`, `mat2`) chạy qua `anitails-sandbox-app` với `--unshare-net` (cắt mạng hoàn toàn ngay từ cấp kernel namespace).
+- **Hộp cát ứng dụng:** Tor Browser chạy trong không gian tên người dùng/PID/mount/IPC/UTS bị cô lập của `bubblewrap` (`--unshare-all --new-session`), chỉ gắn kết thư mục `/home/amnesia/Tor Browser` và `/home/amnesia/Persistent/Tor Browser` (không nhìn thấy `.gnupg`, `.ssh`, `.electrum`), đi qua mạng duy nhất của netns `tbb` và chịu sự kiểm soát của hồ sơ AppArmor. Các ứng dụng xem đa phương tiện/tài liệu (`celluloid`, `imv`, `zathura`, `mat2`) chạy qua `anitails-sandbox-app` với `--unshare-net` (cắt mạng hoàn toàn ngay từ cấp kernel namespace).
 - **Lưu trữ bền vững tùy chọn (`anitails-persistence`):** Mặc định tắt hoàn toàn. Quy tắc `udev` `70-anitails-storage-isolation.rules` gắn cờ `UDISKS_IGNORE=1`, `UDISKS_AUTO=0` lên mọi ổ cứng nội bộ SATA/NVMe/MMC. Phân vùng bền vững chỉ được chấp nhận nếu có nhãn `AniTailsData` nằm trên **cùng thiết bị USB rời đang khởi động hệ thống**, mã hóa bằng **LUKS2 (`aes-xts-plain64` 512-bit + KDF chống GPU/ASIC `argon2id`)**, gắn kết với cờ `nosuid,nodev` và kiểm tra nghiêm ngặt chống tấn công symlink/`..` trước khi bind-mount.
+
+---
+
+## 3. Phiên Đồ Họa Hyprland + Dotfiles AniDE/HyDE (Thay Thế GNOME)
+
+AniTails **không còn GNOME**: GDM, GNOME Shell, `dconf`, Nautilus, Loupe, Papers, GNOME Console, GNOME Control Center và `xdg-desktop-portal-gnome` đều bị loại khỏi `archiso/packages.x86_64`, người dùng `gdm` (`UID/GID 120`) bị xóa khỏi `passwd/group/shadow/gshadow`, và luật `GDM_UID` trong `nftables` bị gỡ (chỉ `amnesia` và `tor` được chạm ControlPort `4101`).
+
+**Thành phần thay thế:**
+
+| Lớp | Thành phần |
+|---|---|
+| Compositor | `hyprland` (wlroots/Wayland) + `aquamarine`, `hyprutils`, `hyprlang`, `hyprgraphics`, `hyprcursor` |
+| Quản lý phiên | `uwsm` — đưa Hyprland vào phiên `systemd --user`, import `/run/environment.d/50-anitails-gpu.conf` do `anitails-gpu-select` sinh ra |
+| Dotfiles | AniDE/HyDE `v26.8.1` (GPL-3.0-only), vendor tại `/usr/share/anitails/hyde/`, ghim commit + SHA-256 từng tệp, seed offline bằng `anitails-hyde-seed` |
+| Thanh trạng thái | `waybar` (dự phòng; bar mặc định của HyDE là Quickshell — gói AUR, không đóng gói) |
+| Launcher / thông báo | `rofi-wayland`, `dunst` |
+| Khóa / idle | `hyprlock` (đã cài nhưng **tắt**), `hypridle` (dim + DPMS, không lock, không suspend) |
+| Ảnh nền | `hyprpaper` + `/usr/share/anitails/wallpapers/anitails-default.png` |
+| Xác thực | `hyprpolkitagent` thay cho polkit agent của GNOME Shell |
+| Portal | `xdg-desktop-portal-hyprland` + `xdg-desktop-portal-gtk` |
+| Ứng dụng | `kitty`, `dolphin`, `kate`, `imv`, `zathura`, `celluloid`, `mpv`, `qalculate-qt` |
+
+**Bất biến bảo mật của lớp giao diện:**
+
+1. Không có tiến trình đồ họa nào chạy dưới quyền root (không greeter, không display manager).
+2. Không có trình duyệt clearnet: `SUPER + B`, `[desktop.app] browser` và `BROWSER` đều trỏ `anitails-tor-browser`; `firefox` bị kiểm thử chặn.
+3. Không khóa màn hình và không suspend: `amnesia` có mật khẩu bị khóa nên `hyprlock` sẽ tạo màn hình không thể mở, còn suspend giữ bí mật trong RAM (đã bị vô hiệu toàn hệ thống).
+4. Dotfiles chỉ được seed sau khi `MANIFEST.sha256` khớp; build cũng chạy `sha256sum -c` trong chroot (`anitails-alpm-finalize`).
+5. Không mang blob dựng sẵn: `hydectl`/`hyde-ipc` bị loại, kiểm thử quét magic `\x7fELF` trong cây vendor.
+
+Chi tiết đầy đủ (luồng phiên, chính sách lỗi, danh sách AUR bị loại, gỡ lỗi): [`HYDE_INTEGRATION.md`](HYDE_INTEGRATION.md).

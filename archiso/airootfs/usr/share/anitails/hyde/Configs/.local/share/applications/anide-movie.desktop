@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.1
+Name=AniSub (Phim)
+GenericName=Movie Browser
+Comment=Browse and watch KKPhim movies from Rofi
+Comment[vi]=Duyệt và xem phim KKPhim bằng menu Rofi
+Exec=hyde-shell rofi.movie
+TryExec=hyde-shell
+Icon=video-television
+Terminal=false
+Categories=AudioVideo;Video;Player;
+Keywords=anisub;anide;phim;xem phim;phim bo;phim le;movie;movies;kkphim;video;stream;tv;hoat hinh;
+StartupNotify=false

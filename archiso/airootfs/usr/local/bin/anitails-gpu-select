@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AniTails Conflict-Free GPU Driver Dispatcher & Pre-GDM Fallback Guard
+AniTails Conflict-Free GPU Driver Dispatcher & Pre-Session Fallback Guard
 (`anitails-gpu-select`)
 =====================================================================
 Selects the safest compatible graphics path at boot WITHOUT:
@@ -238,7 +238,7 @@ def decide_gpu_policy(
     elif scan["topology"] == "nvidia_headless_3d_only_no_display":
         acceleration_tier = "headless_compute_no_display_engine"
         reasons.append(
-            "Card NVIDIA PCI class 0x0302 headless (Tesla/Data Center khong co cong xuat hinh) va khong co iGPU/BMC VGA: khong the khoi dong GDM hien thi man hinh."
+            "Card NVIDIA PCI class 0x0302 headless (Tesla/Data Center khong co cong xuat hinh) va khong co iGPU/BMC VGA: khong the khoi dong phien Hyprland tren man hinh."
         )
         if stack["present"] and stack["lockstep_valid"]:
             selected_driver = "nvidia_headless"
@@ -413,7 +413,7 @@ def render_session_env(decision: dict[str, Any]) -> str:
         lines.append("VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nouveau_icd.x86_64.json:/usr/share/vulkan/icd.d/lvp_icd.x86_64.json")
     elif decision["selected_driver"] in ("nvidia_open", "nvidia_legacy_580xx"):
         if decision["enable_prime_offload"]:
-            # Hybrid Optimus: let Intel/AMD iGPU drive GNOME Wayland, keep NVIDIA ready for PRIME offload via switcheroo-control
+            # Hybrid Optimus: let the Intel/AMD iGPU drive the Hyprland Wayland session, keep NVIDIA ready for PRIME offload via switcheroo-control
             lines.append("ANITAILS_PRIME_AVAILABLE=1")
         else:
             lines.append("GBM_BACKEND=nvidia-drm")

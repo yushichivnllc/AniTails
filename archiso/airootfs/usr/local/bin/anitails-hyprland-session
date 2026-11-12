@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# AniTails — live Hyprland session launcher (HyDE/AniDE dotfiles).
+#
+# Replaces the GDM + GNOME Shell session AniTails used before. There is no
+# display manager any more: `getty@tty1` autologins the unprivileged live user
+# `amnesia`, /etc/profile.d/99-anitails-session.sh calls this script, and the
+# script seeds the vendored dotfiles and hands the TTY to Hyprland through uwsm
+# (a Wayland session manager, so Hyprland lands in a proper systemd user session
+# and inherits /run/environment.d/50-anitails-gpu.conf from anitails-gpu-select).
+#
+# Failure policy (fail-closed):
+#   * dotfile verification failure -> no graphical session at all
+#   * normal Hyprland exit        -> power off (Tails-like: leaving the session
+#                                    ends the amnesic session)
+#   * three crashes in a row      -> drop to a shell for diagnostics
+set -uo pipefail
+
+export XDG_CURRENT_DESKTOP=Hyprland
+export XDG_SESSION_DESKTOP=Hyprland
+export XDG_SESSION_TYPE=wayland
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export PATH="/usr/local/bin:${PATH}"
+
+ANITAILS_SESSION_LAUNCHED=1
+export ANITAILS_SESSION_LAUNCHED
+
+log() { printf 'anitails-session: %s\n' "$*" >&2; }
+
+if (( EUID == 0 )); then
+    log "refusing to start the graphical session as root"
+    exit 1
+fi
+
+# 1. Seed the HyDE dotfiles (verified against MANIFEST.sha256 first).
+if ! /usr/local/lib/anitails-hyde-seed --quiet; then
+    log "dotfile verification failed — starting the tty shell without a desktop"
+    log "run 'sudo /usr/local/lib/anitails-hyde-seed --check' from a debug shell"
+    exit 1
+fi
+
+# 2. NVIDIA / Mesa environment computed at boot by anitails-gpu-select lands in
+#    /run/environment.d, which the systemd user manager (and therefore uwsm)
+#    already imported. Nothing to do here, but make it visible in the journal.
+if [[ -r /run/anitails/gpu.env ]]; then
+    log "GPU environment: $(tr '\n' ' ' </run/anitails/gpu.env)"
+fi
+
+# 3. Hand over to Hyprland. `uwsm start` is blocking; it returns when the
+#    session ends.
+attempt=0
+while :; do
+    attempt=$((attempt + 1))
+    log "starting Hyprland via uwsm (attempt ${attempt})"
+
+    if command -v uwsm >/dev/null 2>&1; then
+        uwsm start hyprland-uwsm.desktop
+    else
+        # uwsm is a hard dependency of the ISO; this is only a manual-test path.
+        Hyprland
+    fi
+    rc=$?
+    log "Hyprland exited with status ${rc}"
+
+    if (( rc == 0 )); then
+        log "session ended normally — powering off"
+        systemctl poweroff
+        exit 0
+    fi
+
+    if (( attempt >= 3 )); then
+        log "three failed compositor starts — dropping to a debug shell"
+        log "logs: journalctl --user -b -u hyprland-uwsm ; journalctl -b"
+        exec bash -l
+    fi
+
+    sleep 2
+done

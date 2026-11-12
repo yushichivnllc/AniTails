@@ -1,0 +1,17 @@
+$HOME/.config/quickshell/theme.json|hyde-shell quickshell --update
+{
+  "barBg": "#<wallbash_pry1>",
+  "mainBg": "#<wallbash_pry1>",
+  "surfaceBg": "#<wallbash_pry2>",
+  "layer2Bg": "#<wallbash_2xa2>",
+  "mainFg": "#<wallbash_1xa8>",
+  "subFg": "#<wallbash_1xa6>",
+  "actBg": "#<wallbash_pry4>",
+  "accentSecondary": "#<wallbash_pry3>",
+  "onSecondaryContainer": "#<wallbash_3xa9>",
+  "actFg": "#<wallbash_4xa9>",
+  "hvrBg": "#<wallbash_2xa3>",
+  "hvrFg": "#<wallbash_3xa8>",
+  "borderColor": "#<wallbash_1xa4>",
+  "cornerRadius": 23
+}

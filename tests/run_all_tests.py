@@ -178,7 +178,7 @@ def main() -> int:
     ready_for_release = result.wasSuccessful() and len(p0_blocked_or_failed) == 0
 
     summary = {
-        "executed_at_utc": "2026-11-08",
+        "executed_at_utc": time.strftime("%Y-%m-%d", time.gmtime()),
         "duration_seconds": elapsed,
         "unit_and_simulation_tests_total": result.testsRun,
         "unit_and_simulation_tests_passed": result.testsRun - len(result.failures) - len(result.errors),

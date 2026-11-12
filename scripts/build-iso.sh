@@ -60,6 +60,15 @@ check_pacman_security() {
 }
 
 check_pacman_security
+
+# The Hyprland desktop is configured by the vendored AniDE/HyDE dotfiles. Their
+# SHA-256 manifest is enforced again inside the chroot
+# (anitails-alpm-finalize) and at session start (anitails-hyde-seed).
+if ! python3 "${REPO_ROOT}/scripts/sync-hyde-dotfiles.py" --check; then
+    echo "CRITICAL SECURITY VIOLATION: vendored AniDE/HyDE dotfiles do not match MANIFEST.sha256!" >&2
+    exit 1
+fi
+
 python3 "${REPO_ROOT}/scripts/verify-nvidia-lockstep.py" --profile "${SELECTED_PROFILE}"
 
 if [[ "${VALIDATE_ONLY}" -eq 1 ]]; then

@@ -10,9 +10,11 @@ WATCHDOG_BIN="${ANITAILS_WATCHDOG_BIN:-/usr/bin/anitails-udev-watchdog}"
 emergency_poweroff() {
     logger -t anitails-watchdog -p authpriv.emerg "EMERGENCY: Live boot medium removed! Killing user session and wiping RAM."
     /usr/bin/loginctl --signal=9 kill-user amnesia 2>/dev/null || true
-    /usr/bin/systemctl stop gdm.service 2>/dev/null || true
-    /usr/bin/systemctl --signal=9 kill gdm.service 2>/dev/null || true
-    /usr/bin/loginctl --signal=9 kill-user gdm 2>/dev/null || true
+    # Hyprland is started by anitails-hyprland-session (getty autologin, no
+    # display manager). Kill the compositor's session scope and, if it is
+    # managed by uwsm, the session unit as well.
+    /usr/bin/systemctl --user -M amnesia@.host --signal=9 kill hyprland-uwsm.service 2>/dev/null || true
+    /usr/bin/systemctl --signal=9 stop user@1000.service 2>/dev/null || true
     # Close any unlocked LUKS2 Persistent Storage immediately
     /usr/local/bin/anitails-persistence lock 2>/dev/null || true
     # Trigger immediate systemd-shutdown -> /run/initramfs/shutdown RAM wipe

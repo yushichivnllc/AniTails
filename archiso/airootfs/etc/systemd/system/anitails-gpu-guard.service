@@ -1,8 +1,8 @@
 [Unit]
-Description=AniTails Conflict-Free GPU Selector & Pre-GDM Fallback Guard
+Description=AniTails Conflict-Free GPU Selector & Pre-Session Fallback Guard
 DefaultDependencies=no
 After=systemd-tmpfiles-setup.service
-Before=systemd-udevd.service display-manager.service gdm.service
+Before=systemd-udevd.service display-manager.service
 ConditionPathExists=/usr/local/bin/anitails-gpu-select
 
 [Service]
