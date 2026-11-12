@@ -58,11 +58,11 @@ Hyprland (wlroots) + HyDE cho một desktop Wayland gọn hơn, cấu hình bằ
 
 ```text
 archiso/airootfs/usr/share/anitails/hyde/
-├── Configs/            # 476 tệp nguyên bản từ AniDE (Configs/.config, Configs/.local)
+├── Configs/            # 474 tệp nguyên bản từ AniDE (Configs/.config, Configs/.local)
 ├── overrides/          # 7 tệp do AniTails viết (chính sách, xem §4)
 ├── LICENSE             # GPL-3.0-only của AniDE/HyDE
 ├── UPSTREAM.json       # repo, commit, ngày, danh sách loại trừ
-└── MANIFEST.sha256     # SHA-256 từng tệp (485 mục)
+└── MANIFEST.sha256     # SHA-256 từng tệp (483 mục)
 ```
 
 Sinh lại bằng:
@@ -71,6 +71,24 @@ Sinh lại bằng:
 git clone --depth 1 https://github.com/hyprdes/AniDE /tmp/AniDE
 python3 scripts/sync-hyde-dotfiles.py --source /tmp/AniDE   # vendor + verify
 python3 scripts/sync-hyde-dotfiles.py --check                # chỉ xác minh
+```
+
+Công cụ vendor **bỏ qua** hai loại tệp:
+
+- `.gitignore` / `.gitattributes` của upstream — đây là metadata repo, không phải cấu hình desktop.
+  Lý do cụ thể: `Configs/.config/hypr/shaders/.gitignore` chứa đúng một dòng `*`, nên `git add`
+  bỏ qua **toàn bộ** 12 shader Hyprland (`.frag`, `wallbash.inc`). Tệp vẫn có trong work tree
+  (manifest cục bộ vẫn PASS) nhưng **biến mất khi clone sạch** — đúng lỗi mà CI
+  *"Validate all 4 isolated Archiso & NVIDIA profiles"* báo (`missing: Configs/.config/hypr/shaders/*`).
+- `*.cache.glsl` — cache biên dịch shader sinh ra lúc chạy, không phải cấu hình.
+
+Ngoài ra, cả `--source` lẫn `--check` đều gọi `git check-ignore` trên từng tệp đã vendor và
+**thoát với mã 1** nếu git sẽ bỏ qua bất kỳ tệp nào, để cây vendor không bao giờ lệch khỏi
+một checkout sạch. Khi kiểm chứng thủ công, luôn dùng bản clone mới thay vì work tree:
+
+```bash
+git clone --depth 1 --branch <branch> <repo> /tmp/verify \
+  && cd /tmp/verify && python3 scripts/sync-hyde-dotfiles.py --check
 ```
 
 **Loại trừ có chủ đích** (`UPSTREAM.json → excluded_paths`):

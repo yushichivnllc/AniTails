@@ -37,7 +37,7 @@ Không một hệ điều hành nào là "bất khả xâm phạm". Tài liệu 
 
 ### 2.4b. Bề Mặt Cấu Hình Giao Diện (Dotfiles AniDE/HyDE)
 
-- AniTails chuyển từ GNOME sang **Hyprland + dotfiles AniDE/HyDE** (`docs/HYDE_INTEGRATION.md`). Đây là mã cấu hình bên thứ ba (GPL-3.0-only, ~485 tệp) chạy **dưới quyền người dùng `amnesia`**, không có tiến trình đồ họa nào chạy root (không display manager).
+- AniTails chuyển từ GNOME sang **Hyprland + dotfiles AniDE/HyDE** (`docs/HYDE_INTEGRATION.md`). Đây là mã cấu hình bên thứ ba (GPL-3.0-only, ~483 tệp) chạy **dưới quyền người dùng `amnesia`**, không có tiến trình đồ họa nào chạy root (không display manager).
 - Rủi ro tồn dư: một lỗi trong script HyDE (`hyde-shell`, `wallbash`, `rofi.*.sh`) chạy trong phiên người dùng có thể làm lộ dữ liệu **trong phạm vi `$HOME`** hoặc gây treo phiên. AniTails giảm thiểu bằng cách:
   1. Ghim dotfiles theo commit + **SHA-256 từng tệp**; `anitails-hyde-seed` từ chối seed nếu manifest sai lệch, và quá trình build chạy `sha256sum -c` trong chroot.
   2. **Không** đóng gói binary dựng sẵn (`hydectl`, `hyde-ipc`) và **không** dùng AUR (`quickshell`, `hyprquery`, `wlogout`).

@@ -2,7 +2,7 @@
 
 > **Tuyên bố quan trọng:** **AniTails** là bản dẫn xuất độc lập được thiết kế và chuyển đổi sang nền tảng **Arch Linux (`archiso`)**, **KHÔNG PHẢI** bản phát hành chính thức của dự án Tails (`tails.net`) hay The Tor Project. Xem đầy đủ thông báo pháp lý và giấy phép `GPL-3.0-or-later` tại [`NOTICE.md`](NOTICE.md) và [`COPYING`](COPYING).
 >
-> **Trạng thái kiểm định hiện tại (`2026-11-08`):** `38/38` bộ kiểm thử bảo mật, giao diện Hyprland/HyDE & phần cứng NVIDIA tự động đạt **`PASS`**, nhưng trạng thái phát hành tổng thể là **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)** do các cổng biên dịch ISO `mkarchiso`, kiểm thử khởi động QEMU BIOS/UEFI, kiểm thử KMS trên GPU NVIDIA vật lý và ký khóa phần cứng HSM ngoài máy build đang ở trạng thái **`BLOCKED` / `SKIPPED`** trong môi trường container Debian 12 hiện tại. Xem báo cáo chi tiết tại [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) và [`docs/NVIDIA_COMPATIBILITY.md`](docs/NVIDIA_COMPATIBILITY.md).
+> **Trạng thái kiểm định hiện tại (`2026-11-12`):** `39/39` bộ kiểm thử bảo mật, giao diện Hyprland/HyDE & phần cứng NVIDIA tự động đạt **`PASS`**, nhưng trạng thái phát hành tổng thể là **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)** do các cổng biên dịch ISO `mkarchiso`, kiểm thử khởi động QEMU BIOS/UEFI, kiểm thử KMS trên GPU NVIDIA vật lý và ký khóa phần cứng HSM ngoài máy build đang ở trạng thái **`BLOCKED` / `SKIPPED`** trong môi trường container Debian 12 hiện tại. Xem báo cáo chi tiết tại [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) và [`docs/NVIDIA_COMPATIBILITY.md`](docs/NVIDIA_COMPATIBILITY.md).
 
 ---
 
@@ -23,7 +23,7 @@
    - Lưu trữ bền vững tùy chọn (`anitails-persistence`) mã hóa bằng **LUKS2 (`aes-xts-plain64` 512-bit + `argon2id`)** với cơ chế chống symlink traversal.
 4. **Giao diện Hyprland + dotfiles AniDE/HyDE (không còn GNOME, không còn display manager):**
    - Loại bỏ hoàn toàn **GDM, GNOME Shell, dconf, Nautilus, Loupe, Papers, GNOME Console, `xdg-desktop-portal-gnome`** cùng người dùng `gdm` (`UID 120`) và luật `GDM_UID` trong `nftables`.
-   - Desktop Wayland dựng từ **Hyprland** + **dotfiles [AniDE](https://github.com/hyprdes/AniDE) `v26.8.1`** (fork của HyDE, `GPL-3.0-only`), vendor tĩnh tại `/usr/share/anitails/hyde/`, ghim commit + **SHA-256 từng tệp** (485 tệp) và được seed offline vào `$HOME` bởi `anitails-hyde-seed` (fail-closed nếu manifest sai lệch).
+   - Desktop Wayland dựng từ **Hyprland** + **dotfiles [AniDE](https://github.com/hyprdes/AniDE) `v26.8.1`** (fork của HyDE, `GPL-3.0-only`), vendor tĩnh tại `/usr/share/anitails/hyde/`, ghim commit + **SHA-256 từng tệp** (483 tệp) và được seed offline vào `$HOME` bởi `anitails-hyde-seed` (fail-closed nếu manifest sai lệch).
    - Không có greeter: `getty@tty1` tự đăng nhập `amnesia` → `uwsm start hyprland-uwsm.desktop`. Thanh trạng thái dự phòng **Waybar** (Quickshell là gói AUR nên không đóng gói), thông báo `dunst`, clipboard `cliphist`, ảnh nền tĩnh `hyprpaper`.
    - Trình duyệt duy nhất là **Tor Browser** (`SUPER + B`); **khóa màn hình bị tắt** (tài khoản live không có mật khẩu, giống Tails) và **suspend bị cấm**; xem [`docs/HYDE_INTEGRATION.md`](docs/HYDE_INTEGRATION.md).
 

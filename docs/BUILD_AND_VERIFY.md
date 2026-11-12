@@ -40,7 +40,7 @@ SHA-256 (bước này cũng tự chạy trong `scripts/build-iso.sh`, trong chro
 
 ```bash
 python3 scripts/sync-hyde-dotfiles.py --check
-# OK: 485 vendored dotfiles match MANIFEST.sha256
+# OK: 483 vendored dotfiles match MANIFEST.sha256
 ```
 
 Nếu cần cập nhật lên commit AniDE mới:

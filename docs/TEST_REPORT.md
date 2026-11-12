@@ -11,7 +11,7 @@
 
 > ### TRẠNG THÁI: **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)**
 >
-> - **38 / 38 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm **19/19** bài cũ: **13** bài P0 bảo mật cốt lõi + **6** bộ kiểm thử tích hợp NVIDIA đa thế hệ, và **16/16** bài mới cho giao diện Hyprland + dotfiles AniDE/HyDE), không có bất kỳ bài kiểm thử thực thi nào thất bại (`0 FAIL`).
+> - **39 / 39 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm **19/19** bài cũ: **13** bài P0 bảo mật cốt lõi + **6** bộ kiểm thử tích hợp NVIDIA đa thế hệ, và **17/17** bài mới cho giao diện Hyprland + dotfiles AniDE/HyDE), không có bất kỳ bài kiểm thử thực thi nào thất bại (`0 FAIL`).
 > - Tuy nhiên, có **7 cổng kiểm định ở trạng thái `BLOCKED` và 2 cổng ở trạng thái `SKIPPED`** do giới hạn khách quan của môi trường container (không có `CONFIG_NF_TABLES`, không có `mkarchiso`/`makepkg`/`qemu-system-x86_64`, không có khóa HSM ngoài, và **không có GPU NVIDIA vật lý `0x10de` hay PCIe passthrough** — lưu ý GPU ảo của QEMU **không** chứng minh được tương thích phần cứng NVIDIA thật).
 > - Theo đúng nguyên tắc trung thực kỹ thuật, hệ thống **chưa được phép công bố là bản phát hành sẵn sàng sử dụng thực địa** cho đến khi cả 5 cổng `P0` nêu trên được thực thi và đạt `PASS` trên máy trạm build Arch Linux chuyên dụng.
 > - Desktop mới (Hyprland + HyDE) **chưa được khởi động thực tế** trong sandbox: cổng `GATE-QEMU-BOOT-BIOS-UEFI` vẫn `BLOCKED`, nên mọi kết luận về giao diện chỉ dựa trên kiểm thử tĩnh + seeder chạy thật (xem Mục 4).
@@ -66,17 +66,17 @@ python3 tests/run_all_tests.py
 
 ---
 
-## 4. Kiểm Thử Giao Diện Hyprland + Dotfiles AniDE/HyDE (`tests/test_hyde_dotfiles.py`, 16 bài — `2026-11-12`)
+## 4. Kiểm Thử Giao Diện Hyprland + Dotfiles AniDE/HyDE (`tests/test_hyde_dotfiles.py`, 17 bài — `2026-11-12`)
 
-Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới: `scripts/sync-hyde-dotfiles.py --check` xác minh 485 tệp dotfiles trên đĩa, và `anitails-hyde-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed.
+Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới: `scripts/sync-hyde-dotfiles.py --check` xác minh 483 tệp dotfiles trên đĩa, và `anitails-hyde-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed.
 
 | Mã | Nội dung | Trạng thái | Bằng chứng |
 |---|---|---|---|
-| **T-20** | Manifest dotfiles vendor khớp `MANIFEST.sha256` (485 tệp, ~7.7 MiB) | **`PASS`** | `OK: 485 vendored dotfiles match MANIFEST.sha256` |
+| **T-20** | Manifest dotfiles vendor khớp `MANIFEST.sha256` (483 tệp, ~6.6 MiB) | **`PASS`** | `OK: 483 vendored dotfiles match MANIFEST.sha256` |
 | **T-21** | Provenance: repo `hyprdes/AniDE`, license `GPL-3.0-only`, commit 40-hex trùng `snapshot.lock.json`, `LICENSE` có mặt | **`PASS`** | commit `6d441fcb076954a7c64d19296454a4c14a4c61e1`, `v26.8.1` |
-| **T-22** | Không có blob ELF, không có dconf/`hydectl`/`hyde-ipc` trong cây vendor | **`PASS`** | Quét magic `\x7fELF` trên toàn bộ 485 tệp: 0 khớp |
+| **T-22** | Không có blob ELF, không có dconf/`hydectl`/`hyde-ipc` trong cây vendor | **`PASS`** | Quét magic `\x7fELF` trên toàn bộ 483 tệp: 0 khớp |
 | **T-23** | Tập override của AniTails đúng như tài liệu (7 tệp) | **`PASS`** | `archiso/hyde-overrides/` == danh sách kỳ vọng |
-| **T-24** | Seeder tạo desktop đầy đủ (`hyprland.lua`, `anitails.lua`, `config.toml`, waybar, `hyde.lua`, `hyde-shell`, `~/Persistent`) | **`PASS`** | 481 tệp được ghi; `hyde-shell` có bit `+x` |
+| **T-24** | Seeder tạo desktop đầy đủ (`hyprland.lua`, `anitails.lua`, `config.toml`, waybar, `hyde.lua`, `hyde-shell`, `~/Persistent`) | **`PASS`** | 479 tệp được ghi; `hyde-shell` có bit `+x` |
 | **T-25** | Override thắng bản upstream (Tor Browser, `hyprpaper`, `require("anitails")`) | **`PASS`** | Nội dung `~/.config/hyde/config.toml` sau seed |
 | **T-26** | Idempotent: chạy lần 2 giữ nguyên `hyprland.lua` người dùng sửa, nhưng làm mới tệp chính sách `anitails.lua` | **`PASS`** | Lần 2: `0 file(s) written` |
 | **T-27** | `--check` không ghi gì vào `$HOME` | **`PASS`** | `~/.config` không tồn tại sau khi chạy |
@@ -88,5 +88,24 @@ Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
 | **T-33** | Bar dự phòng Waybar khi thiếu Quickshell | **`PASS`** | `bar.sh` + `config.jsonc` hợp lệ (JSONC) |
 | **T-34** | Danh sách gói: có Hyprland/uwsm/waybar/portal-hyprland…; không có GDM/GNOME/`firefox`/`quickshell`; lock không còn `gnome-shell`/`gdm` | **`PASS`** | `packages.x86_64`, `snapshot.lock.json` |
 | **T-35** | Ảnh nền PNG hợp lệ + `anitails-hyde-doctor` + mọi đường dẫn `file_permissions` tồn tại trước `pacstrap` | **`PASS`** | PNG magic `\x89PNG`, > 10 KB |
+| **T-36** | **Hồi quy CI:** không tệp vendor nào bị `git` bỏ qua (`git check-ignore` rỗng) và 11 tệp shader Hyprland phải được track | **`PASS`** | `shaders/.gitignore` của HyDE chứa `*` — xem §4.1 |
 
-**Kết luận Mục 4:** toàn bộ 16 bài đạt `PASS`; phần **chưa chứng minh được** là khởi động đồ họa thật (QEMU/UEFI + GPU), vẫn nằm trong `GATE-QEMU-BOOT-BIOS-UEFI` (`BLOCKED`) và `GATE-NVIDIA-PHYSICAL-GPU-KMS` (`BLOCKED`).
+**Kết luận Mục 4:** toàn bộ 17 bài đạt `PASS`; phần **chưa chứng minh được** là khởi động đồ họa thật (QEMU/UEFI + GPU), vẫn nằm trong `GATE-QEMU-BOOT-BIOS-UEFI` (`BLOCKED`) và `GATE-NVIDIA-PHYSICAL-GPU-KMS` (`BLOCKED`).
+
+### 4.1. Sự cố CI đã khắc phục (`2026-11-12`)
+
+GitHub Actions (workflow `build-iso.yml`, bước *"Validate all 4 isolated Archiso & NVIDIA profiles"*) báo `exit code 1`
+trong khi cả 4 profile đều `PASS` khi chạy cục bộ. Nguyên nhân gốc: upstream HyDE có tệp
+`Configs/.config/hypr/shaders/.gitignore` chứa **một dòng `*`**, nên `git add -A` bỏ qua **toàn bộ**
+12 shader Hyprland (`.frag`, `wallbash.inc`) và `.compiled.cache.glsl`. Các tệp này vẫn tồn tại trong work tree
+nên `--check` cục bộ vẫn `OK`, nhưng **checkout sạch của CI** thiếu chúng:
+
+```text
+missing: Configs/.config/hypr/shaders/blue-light-filter.frag
+... (13 vấn đề) → FAIL: 13 problem(s) in vendored dotfiles
+```
+
+Khắc phục: `sync-hyde-dotfiles.py` bỏ qua `.gitignore`/`.gitattributes`/`*.cache.glsl` khi vendor, **và**
+chạy `git check-ignore` trên mọi tệp đã vendor (cả `--source` lẫn `--check`) để thoát mã 1 nếu git định bỏ qua
+bất kỳ tệp nào. Bài **T-36** chặn tái diễn. Bằng chứng: `git clone --depth 1` nhánh này rồi chạy
+`--check` ⇒ `OK: 483 vendored dotfiles match MANIFEST.sha256` (`rc=0`).

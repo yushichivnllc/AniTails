@@ -54,6 +54,37 @@ class TestHydeDotfilesVendor(unittest.TestCase):
         lock = json.loads((REPO_ROOT / "archiso/snapshot.lock.json").read_text(encoding="utf-8"))
         self.assertEqual(lock["desktop_dotfiles"]["commit"], upstream["commit"])
 
+    def test_vendored_tree_is_not_git_ignored(self) -> None:
+        """Regression: HyDE's shaders/.gitignore contains a bare `*`.
+
+        That silently kept all 12 Hyprland shader files out of the commit, so
+        the manifest check passed in the work tree but failed in CI's fresh
+        checkout ("missing: Configs/.config/hypr/shaders/*"). Every vendored
+        file must therefore be tracked by git.
+        """
+        files = [
+            p.relative_to(REPO_ROOT).as_posix()
+            for p in VENDOR.rglob("*")
+            if p.is_file() and p.name != "MANIFEST.sha256"
+        ]
+        res = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "check-ignore", "--stdin"],
+            input="\n".join(files), capture_output=True, text=True,
+        )
+        if res.returncode not in (0, 1):
+            self.skipTest("not a git checkout")
+        self.assertEqual(res.stdout.split(), [], "git-ignored vendored files disappear on clone")
+
+        tracked = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "ls-files", "--", "archiso/airootfs/usr/share/anitails/hyde"],
+            capture_output=True, text=True,
+        )
+        if tracked.returncode != 0:
+            self.skipTest("not a git checkout")
+        self.assertTrue(tracked.stdout.strip(), "vendored tree must be committed")
+        shaders = [ln for ln in tracked.stdout.splitlines() if "/hypr/shaders/" in ln]
+        self.assertGreaterEqual(len(shaders), 11, "Hyprland shaders must be tracked, not ignored")
+
     def test_no_elf_binaries_and_no_gnome_configs_vendored(self) -> None:
         for path in VENDOR.rglob("*"):
             if not path.is_file():
