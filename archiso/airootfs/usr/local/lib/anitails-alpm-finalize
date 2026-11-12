@@ -36,13 +36,22 @@ if [[ -x /usr/local/lib/anitails-unblock-network ]]; then
     /usr/local/lib/anitails-unblock-network generate-blacklist
 fi
 
-echo "[anitails-finalize] 4/9 Compiling UTF-8 locales & GNOME dconf database..."
+echo "[anitails-finalize] 4/9 Compiling UTF-8 locales & verifying the desktop dotfiles..."
 ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 if [[ -x /usr/bin/locale-gen && -f /etc/locale.gen ]]; then
     /usr/bin/locale-gen
 fi
-if [[ -x /usr/bin/dconf ]]; then
-    /usr/bin/dconf update
+# No GDM/GNOME dconf database: the desktop is Hyprland with the vendored
+# AniDE/HyDE dotfiles, seeded into $HOME from /usr/share/anitails/hyde by
+# anitails-hyde-seed at session start. Fail the build on any manifest mismatch.
+if [[ -f /usr/share/anitails/hyde/MANIFEST.sha256 ]]; then
+    ( cd /usr/share/anitails/hyde && /usr/bin/sha256sum -c --quiet MANIFEST.sha256 ) || {
+        echo "FATAL: vendored HyDE dotfiles do not match MANIFEST.sha256" >&2
+        exit 1
+    }
+else
+    echo "FATAL: /usr/share/anitails/hyde/MANIFEST.sha256 is missing" >&2
+    exit 1
 fi
 
 echo "[anitails-finalize] 5/9 Masking forbidden services & neutralizing static nouveau blocklists..."
@@ -74,7 +83,7 @@ EOF
     fi
 done
 
-echo "[anitails-finalize] 6/9 Enabling mandatory security, GPU guard & GDM desktop units..."
+echo "[anitails-finalize] 6/9 Enabling mandatory security, GPU guard & Hyprland session units..."
 mkdir -p /etc/systemd/system/graphical.target.wants \
          /etc/systemd/system/multi-user.target.wants \
          /etc/systemd/system/sysinit.target.wants \
@@ -85,7 +94,12 @@ ln -sf /usr/lib/systemd/system/graphical.target /etc/systemd/system/default.targ
 ln -sf /usr/lib/systemd/system/nftables.service /etc/systemd/system/multi-user.target.wants/nftables.service
 ln -sf /usr/lib/systemd/system/apparmor.service /etc/systemd/system/multi-user.target.wants/apparmor.service
 ln -sf /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/multi-user.target.wants/NetworkManager.service
-ln -sf /usr/lib/systemd/system/gdm.service /etc/systemd/system/display-manager.service
+# No display manager: getty@tty1 autologins `amnesia` and the login shell is
+# replaced by /etc/profile.d/99-anitails-session.sh, which hands the TTY to
+# Hyprland through uwsm. Mask display-manager.service so nothing can take VT1.
+ln -sf /dev/null /etc/systemd/system/display-manager.service
+mkdir -p /etc/systemd/system/getty.target.wants
+ln -sf /usr/lib/systemd/system/getty@tty1.service /etc/systemd/system/getty.target.wants/getty@tty1.service
 ln -sf /etc/systemd/system/anitails-gpu-guard.service /etc/systemd/system/sysinit.target.wants/anitails-gpu-guard.service
 ln -sf /etc/systemd/system/anitails-create-netns.service /etc/systemd/system/sysinit.target.wants/anitails-create-netns.service
 ln -sf /etc/systemd/system/anitails-onion-grater.service /etc/systemd/system/multi-user.target.wants/anitails-onion-grater.service
@@ -105,6 +119,10 @@ fi
 TOR_UID="$(id -u tor 2>/dev/null || echo 43)"
 TOR_GID="$(id -g tor 2>/dev/null || echo 43)"
 install -d -m 0700 -o "${TOR_UID}" -g "${TOR_GID}" /var/lib/tor
+install -d -m 0755 -o 0 -g 0 /usr/share/anitails/hyde
+# The dotfile tree is read-only by design: the seeder copies it into $HOME.
+find /usr/share/anitails/hyde -type d -exec chmod 0755 {} +
+find /usr/share/anitails/hyde -type f ! -perm -u+x -exec chmod 0644 {} +
 install -d -m 0750 -o 0 -g 0 /etc/polkit-1/rules.d
 if [[ -f /etc/tor/torrc ]]; then
     chown "0:${TOR_GID}" /etc/tor/torrc

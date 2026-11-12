@@ -1,7 +1,7 @@
 # Báo Cáo Kiểm Thử Bảo Mật & Xác Minh Thực Nghiệm (`TEST_REPORT.md`)
 
-- **Ngày thực thi kiểm thử:** `2026-11-08` (UTC)
-- **Nhánh làm việc:** `arena/fc2c1c3e-anitails` (mở rộng hỗ trợ phần cứng & driver NVIDIA trên nền commit `b0751b01a261a0e613e777f6010ac843cb6600cf` nhánh `devel`)
+- **Ngày thực thi kiểm thử:** `2026-11-12` (UTC) — chạy lại toàn bộ sau khi chuyển desktop sang Hyprland + dotfiles AniDE/HyDE
+- **Nhánh làm việc:** `arena/d96eb5c0-anitails` (bỏ GNOME/GDM, tích hợp Hyprland + dotfiles AniDE/HyDE trên nền commit `d42349a8974bccd1ff302b29335f7f608515d978` nhánh `devel`)
 - **Môi trường thực thi thực tế:** Container sandbox Debian GNU/Linux 12 (`bookworm`), nhân Linux `6.1.158+ x86_64`, Python `3.11`, OpenSSL `3.0.x`, GCC C11, `/sys/bus/pci/devices` rỗng (`0` thiết bị PCI/GPU vật lý), `unshare` (hỗ trợ user/network namespace + `veth` + `iptables`/`ip6tables`), `nft` (`libnftables` parser hoạt động, nhưng nhân host không bật `CONFIG_NF_TABLES`).
 - **Tệp kết quả máy đọc tự động sinh ra:** `tests/results/latest_results.json` (sinh bởi lệnh `python3 tests/run_all_tests.py`).
 
@@ -11,13 +11,14 @@
 
 > ### TRẠNG THÁI: **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)**
 >
-> - **19 / 19 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm **13/13** bài P0 bảo mật cốt lõi được chạy lại đầy đủ và **6/6** bộ kiểm thử tích hợp NVIDIA đa thế hệ + đối chứng âm), không có bất kỳ bài kiểm thử thực thi nào thất bại (`0 FAIL`).
+> - **39 / 39 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm **19/19** bài cũ: **13** bài P0 bảo mật cốt lõi + **6** bộ kiểm thử tích hợp NVIDIA đa thế hệ, và **17/17** bài mới cho giao diện Hyprland + dotfiles AniDE/HyDE), không có bất kỳ bài kiểm thử thực thi nào thất bại (`0 FAIL`).
 > - Tuy nhiên, có **7 cổng kiểm định ở trạng thái `BLOCKED` và 2 cổng ở trạng thái `SKIPPED`** do giới hạn khách quan của môi trường container (không có `CONFIG_NF_TABLES`, không có `mkarchiso`/`makepkg`/`qemu-system-x86_64`, không có khóa HSM ngoài, và **không có GPU NVIDIA vật lý `0x10de` hay PCIe passthrough** — lưu ý GPU ảo của QEMU **không** chứng minh được tương thích phần cứng NVIDIA thật).
 > - Theo đúng nguyên tắc trung thực kỹ thuật, hệ thống **chưa được phép công bố là bản phát hành sẵn sàng sử dụng thực địa** cho đến khi cả 5 cổng `P0` nêu trên được thực thi và đạt `PASS` trên máy trạm build Arch Linux chuyên dụng.
+> - Desktop mới (Hyprland + HyDE) **chưa được khởi động thực tế** trong sandbox: cổng `GATE-QEMU-BOOT-BIOS-UEFI` vẫn `BLOCKED`, nên mọi kết luận về giao diện chỉ dựa trên kiểm thử tĩnh + seeder chạy thật (xem Mục 4).
 
 ---
 
-## 2. Bảng Kết Quả Chi Tiết Các Bài Kiểm Thử Đã Thực Thi (`13 PASS / 0 FAIL`)
+## 2. Bảng Kết Quả Chi Tiết Các Bài Kiểm Thử Đã Thực Thi (`19 PASS / 0 FAIL`)
 
 Lệnh chạy tổng thể:
 
@@ -56,9 +57,55 @@ python3 tests/run_all_tests.py
 | **`GATE-NFT-NETLINK`** | **`P0`** | **`BLOCKED`** | Nhân máy ảo E2B hiện tại (`Linux 6.1.158+`) không biên dịch module `CONFIG_NF_TABLES` (lệnh `nft -c -f` đã phân tích sạch cú pháp nhưng dừng ở lời gọi hệ thống Netlink `Operation not supported`). | `sudo unshare -n nft -c -f archiso/airootfs/etc/nftables.conf` trên máy Arch Linux chạy nhân `7.3.3`. |
 | **`GATE-PKGBUILD-BUILD`** | **`P0`** | **`BLOCKED`** | Hệ điều hành sandbox là Debian 12 không có `pacman`/`makepkg`/`pkgctl` và tường lửa mạng ngoài của sandbox chỉ mở tới GitHub/PyPI/npmjs (không mở tới `cdn.kernel.org`, `dist.torproject.org`, `archive.archlinux.org`). | Chạy `pkgctl build` cho cả 5 thư mục trong `pkgbuilds/` theo Mục 3 của `docs/BUILD_AND_VERIFY.md`. |
 | **`GATE-MKARCHISO-ISO`** | **`P0`** | **`BLOCKED`** | Công cụ `mkarchiso` và `pacstrap` của Arch Linux không hiện diện trên máy Debian 12 (`scripts/build-iso.sh` trả về `exit 77 BLOCKED`). | `sudo -E SOURCE_DATE_EPOCH=1794096000 ./scripts/build-iso.sh` trên máy Arch Linux `x86_64`. |
-| **`GATE-QEMU-BOOT-BIOS-UEFI`** | **`P0`** | **`BLOCKED`** | Container không có `qemu-system-x86_64`, OVMF firmware và `/dev/kvm` để khởi động ảnh ISO thực tế, kiểm tra giao diện GNOME/Tor Browser/Thunderbird `#21841` và chụp memory dump sau khi tắt máy để đo hiệu quả xóa RAM. | Khởi động ảnh ISO trên QEMU (cả SeaBIOS và UEFI OVMF) + thực hiện `dump-guest-memory` trước/sau khi kích hoạt `anitails-udev-watchdog`. |
+| **`GATE-QEMU-BOOT-BIOS-UEFI`** | **`P0`** | **`BLOCKED`** | Container không có `qemu-system-x86_64`, OVMF firmware và `/dev/kvm` để khởi động ảnh ISO thực tế, kiểm tra giao diện Hyprland/HyDE, Tor Browser, Thunderbird `#21841` và chụp memory dump sau khi tắt máy để đo hiệu quả xóa RAM. | Khởi động ảnh ISO trên QEMU (cả SeaBIOS và UEFI OVMF) + thực hiện `dump-guest-memory` trước/sau khi kích hoạt `anitails-udev-watchdog`. |
 | **`GATE-EXTERNAL-RELEASE-KEY`** | **`P0`** | **`BLOCKED`** | Không có khóa ký phát hành phần cứng HSM / thẻ thông minh bên ngoài môi trường build; tuân thủ chính sách cấm tự tạo khóa giả. | Cắm thẻ OpenPGP HSM trên máy trạm air-gapped và chạy `ANITAILS_RELEASE_GPG_FPR=<FPR> ./scripts/sign-release.sh out/manifests`. |
 | **`GATE-UPSTREAM-GITLAB-DIFF`** | **`P1`** | **`BLOCKED`** | Máy chủ `gitlab.tails.net` chặn truy cập Git/HTTP/API không đăng nhập từ Internet công cộng. | Đối chiếu bổ sung trực tiếp cây Git của Tails 7.16 nếu có tài khoản mirror nội bộ trên `gitlab.tails.net` (hiện toàn bộ thay đổi bảo mật đã được đối chiếu qua bản tin công khai `tails.net`, `DSA-6572-1`, `MFSA 2026-112`, Mozilla NSS và tarball chính thức). |
-| **`GATE-NVIDIA-PHYSICAL-GPU-KMS`** | **`P1`** | **`BLOCKED`** | Container kiểm thử có `/sys/bus/pci/devices` rỗng (`0` thiết bị PCI/GPU `0x10de`), không có phần cứng NVIDIA thật hay PCIe VFIO passthrough (lưu ý GPU ảo QEMU không chứng minh hoạt động của GPU NVIDIA vật lý). | Khởi động thực tế USB `base`, `nvidia-modern` và `nvidia-legacy-580xx` trên máy trạm/laptop có GPU NVIDIA thật để xác nhận KMS, GNOME Wayland, GSP firmware và fallback. |
+| **`GATE-NVIDIA-PHYSICAL-GPU-KMS`** | **`P1`** | **`BLOCKED`** | Container kiểm thử có `/sys/bus/pci/devices` rỗng (`0` thiết bị PCI/GPU `0x10de`), không có phần cứng NVIDIA thật hay PCIe VFIO passthrough (lưu ý GPU ảo QEMU không chứng minh hoạt động của GPU NVIDIA vật lý). | Khởi động thực tế USB `base`, `nvidia-modern` và `nvidia-legacy-580xx` trên máy trạm/laptop có GPU NVIDIA thật để xác nhận KMS, Hyprland Wayland, GSP firmware và fallback. |
 | **`GATE-NVIDIA-HYBRID-OPTIMUS-AND-EGPU`** | **`P1`** | **`SKIPPED`** | Cần laptop Hybrid Intel/AMD + NVIDIA thực tế (cả thiết kế MUXless và MUXed có cổng HDMI nối dGPU) và hộp eGPU Thunderbolt trên máy bật IOMMU. | Kiểm thử thực tế chế độ `auto`, `anitails.gpu=igpu`, cổng HDMI ngoài và `anitails.egpu=1`. |
 | **`GATE-ARM64-JETSON-GRACE`** | **`P2`** | **`SKIPPED`** | Các nền tảng NVIDIA Jetson (`Orin`/`AGX Thor`) và Grace CPU là kiến trúc `aarch64` ngoài phạm vi ảnh ISO `x86_64`. | Chỉ nghiên cứu kiến trúc tại Mục 6 `docs/NVIDIA_COMPATIBILITY.md`; hỏi xác nhận model bo mạch & QSPI firmware nếu người dùng yêu cầu nhánh `aarch64` riêng. |
+
+---
+
+## 4. Kiểm Thử Giao Diện Hyprland + Dotfiles AniDE/HyDE (`tests/test_hyde_dotfiles.py`, 17 bài — `2026-11-12`)
+
+Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới: `scripts/sync-hyde-dotfiles.py --check` xác minh 483 tệp dotfiles trên đĩa, và `anitails-hyde-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed.
+
+| Mã | Nội dung | Trạng thái | Bằng chứng |
+|---|---|---|---|
+| **T-20** | Manifest dotfiles vendor khớp `MANIFEST.sha256` (483 tệp, ~6.6 MiB) | **`PASS`** | `OK: 483 vendored dotfiles match MANIFEST.sha256` |
+| **T-21** | Provenance: repo `hyprdes/AniDE`, license `GPL-3.0-only`, commit 40-hex trùng `snapshot.lock.json`, `LICENSE` có mặt | **`PASS`** | commit `6d441fcb076954a7c64d19296454a4c14a4c61e1`, `v26.8.1` |
+| **T-22** | Không có blob ELF, không có dconf/`hydectl`/`hyde-ipc` trong cây vendor | **`PASS`** | Quét magic `\x7fELF` trên toàn bộ 483 tệp: 0 khớp |
+| **T-23** | Tập override của AniTails đúng như tài liệu (7 tệp) | **`PASS`** | `archiso/hyde-overrides/` == danh sách kỳ vọng |
+| **T-24** | Seeder tạo desktop đầy đủ (`hyprland.lua`, `anitails.lua`, `config.toml`, waybar, `hyde.lua`, `hyde-shell`, `~/Persistent`) | **`PASS`** | 479 tệp được ghi; `hyde-shell` có bit `+x` |
+| **T-25** | Override thắng bản upstream (Tor Browser, `hyprpaper`, `require("anitails")`) | **`PASS`** | Nội dung `~/.config/hyde/config.toml` sau seed |
+| **T-26** | Idempotent: chạy lần 2 giữ nguyên `hyprland.lua` người dùng sửa, nhưng làm mới tệp chính sách `anitails.lua` | **`PASS`** | Lần 2: `0 file(s) written` |
+| **T-27** | `--check` không ghi gì vào `$HOME` | **`PASS`** | `~/.config` không tồn tại sau khi chạy |
+| **T-28** | **Đối chứng âm:** sửa 1 tệp trong cây vendor ⇒ seeder từ chối seed (exit 1, `hash mismatch`, không ghi tệp nào) | **`PASS`** | Fail-closed đúng thiết kế |
+| **T-29** | `--force` reset tệp chính sách về mặc định AniTails | **`PASS`** | `config.toml` hỏng được phục hồi |
+| **T-30** | Session launcher: seed → `uwsm start hyprland-uwsm.desktop`, poweroff khi thoát, shell dự phòng sau 3 lần crash | **`PASS`** | Kiểm tra tĩnh có kiểm chứng |
+| **T-31** | Autologin chỉ `amnesia`; không còn `gdm`/`display-manager`; finalize bật `getty@tty1` | **`PASS`** | `20-anitails-autologin.conf` + `anitails-alpm-finalize` |
+| **T-32** | Override phản ánh chính sách: Tor Browser, tắt khóa màn hình, không suspend trong `hypridle`, `BROWSER` trong `uwsm` env | **`PASS`** | Không còn `lock_cmd`/`loginctl lock-session`/`systemctl suspend` |
+| **T-33** | Bar dự phòng Waybar khi thiếu Quickshell | **`PASS`** | `bar.sh` + `config.jsonc` hợp lệ (JSONC) |
+| **T-34** | Danh sách gói: có Hyprland/uwsm/waybar/portal-hyprland…; không có GDM/GNOME/`firefox`/`quickshell`; lock không còn `gnome-shell`/`gdm` | **`PASS`** | `packages.x86_64`, `snapshot.lock.json` |
+| **T-35** | Ảnh nền PNG hợp lệ + `anitails-hyde-doctor` + mọi đường dẫn `file_permissions` tồn tại trước `pacstrap` | **`PASS`** | PNG magic `\x89PNG`, > 10 KB |
+| **T-36** | **Hồi quy CI:** không tệp vendor nào bị `git` bỏ qua (`git check-ignore` rỗng) và 11 tệp shader Hyprland phải được track | **`PASS`** | `shaders/.gitignore` của HyDE chứa `*` — xem §4.1 |
+
+**Kết luận Mục 4:** toàn bộ 17 bài đạt `PASS`; phần **chưa chứng minh được** là khởi động đồ họa thật (QEMU/UEFI + GPU), vẫn nằm trong `GATE-QEMU-BOOT-BIOS-UEFI` (`BLOCKED`) và `GATE-NVIDIA-PHYSICAL-GPU-KMS` (`BLOCKED`).
+
+### 4.1. Sự cố CI đã khắc phục (`2026-11-12`)
+
+GitHub Actions (workflow `build-iso.yml`, bước *"Validate all 4 isolated Archiso & NVIDIA profiles"*) báo `exit code 1`
+trong khi cả 4 profile đều `PASS` khi chạy cục bộ. Nguyên nhân gốc: upstream HyDE có tệp
+`Configs/.config/hypr/shaders/.gitignore` chứa **một dòng `*`**, nên `git add -A` bỏ qua **toàn bộ**
+12 shader Hyprland (`.frag`, `wallbash.inc`) và `.compiled.cache.glsl`. Các tệp này vẫn tồn tại trong work tree
+nên `--check` cục bộ vẫn `OK`, nhưng **checkout sạch của CI** thiếu chúng:
+
+```text
+missing: Configs/.config/hypr/shaders/blue-light-filter.frag
+... (13 vấn đề) → FAIL: 13 problem(s) in vendored dotfiles
+```
+
+Khắc phục: `sync-hyde-dotfiles.py` bỏ qua `.gitignore`/`.gitattributes`/`*.cache.glsl` khi vendor, **và**
+chạy `git check-ignore` trên mọi tệp đã vendor (cả `--source` lẫn `--check`) để thoát mã 1 nếu git định bỏ qua
+bất kỳ tệp nào. Bài **T-36** chặn tái diễn. Bằng chứng: `git clone --depth 1` nhánh này rồi chạy
+`--check` ⇒ `OK: 483 vendored dotfiles match MANIFEST.sha256` (`rc=0`).

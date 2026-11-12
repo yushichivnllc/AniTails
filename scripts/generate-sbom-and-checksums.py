@@ -74,6 +74,39 @@ def generate_manifests(repo_root: Path, target: Path, out_dir: Path) -> int:
                 ],
             }
         )
+    # Desktop stack: pinned by *minimum* version because the Hyprland/HyDE
+    # components are not security-ABI constraints, but they must be present and
+    # new enough for the vendored Lua dotfiles (see docs/HYDE_INTEGRATION.md).
+    for pkg, meta in sorted(lock_data.get("desktop_stack_packages", {}).items()):
+        components.append(
+            {
+                "type": "library",
+                "name": pkg,
+                "version": meta["minimum_version"],
+                "purl": f"pkg:arch/{pkg}@{meta['minimum_version']}?arch=x86_64&repo={meta['repo']}",
+                "properties": [
+                    {"name": "anitails:source", "value": f"arch-archive:{lock_data['snapshot_date_utc']}:{meta['repo']}"},
+                    {"name": "anitails:pin", "value": "minimum-version"},
+                ],
+            }
+        )
+    dotfiles = lock_data.get("desktop_dotfiles")
+    if dotfiles:
+        components.append(
+            {
+                "type": "data",
+                "name": "AniDE-HyDE-dotfiles",
+                "version": dotfiles["version"],
+                "purl": f"pkg:github/hyprdes/AniDE@{dotfiles['commit']}",
+                "hashes": [],
+                "externalReferences": [{"type": "vcs", "url": dotfiles["repository"]}],
+                "properties": [
+                    {"name": "anitails:license", "value": dotfiles.get("license", "GPL-3.0-only")},
+                    {"name": "anitails:vendored_path", "value": dotfiles["vendored_path"]},
+                    {"name": "anitails:manifest", "value": dotfiles["manifest"]},
+                ],
+            }
+        )
     for pkg, meta in sorted(lock_data["custom_local_packages_required"].items()):
         comp: Dict[str, object] = {
             "type": "application",

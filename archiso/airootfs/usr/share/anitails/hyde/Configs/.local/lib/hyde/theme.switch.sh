@@ -1,0 +1,356 @@
+#!/usr/bin/env bash
+[[ $HYDE_SHELL_INIT -ne 1 ]] && eval "$(hyde-shell init)"
+[ -z "$HYDE_THEME" ] && echo "ERROR: unable to detect theme" && exit 1
+get_themes
+confDir="${XDG_CONFIG_HOME:-$HOME/.config}"
+Theme_Change() {
+    local x_switch=$1
+    for i in "${!thmList[@]}"; do
+        if [ "${thmList[i]}" == "$HYDE_THEME" ]; then
+            if [ "$x_switch" == 'n' ]; then
+                setIndex=$(((i + 1) % ${#thmList[@]}))
+            elif [ "$x_switch" == 'p' ]; then
+                setIndex=$((i - 1))
+            fi
+            themeSet="${thmList[setIndex]}"
+            break
+        fi
+    done
+}
+show_theme_status() {
+    cat <<EOF
+Current theme: $HYDE_THEME
+Gtk theme: $GTK_THEME
+Icon theme: $ICON_THEME
+Cursor theme: $CURSOR_THEME
+Cursor size: $CURSOR_SIZE
+Terminal: $TERMINAL
+Font: $FONT
+Font style: $FONT_STYLE
+Font size: $FONT_SIZE
+Document font: $DOCUMENT_FONT
+Document font size: $DOCUMENT_FONT_SIZE
+Monospace font: $MONOSPACE_FONT
+Monospace font size: $MONOSPACE_FONT_SIZE
+Bar font: $BAR_FONT
+Menu font: $MENU_FONT
+Notification font: $NOTIFICATION_FONT
+
+EOF
+}
+load_hypr_variables() {
+    local hypr_file="$1"
+    # Each value is queried on its own and assigned as data. hyq's `--export
+    # env` output does not escape `$(...)`, backticks or quotes, so evaluating
+    # it ran whatever a downloaded theme's hypr.theme contained (CWE-78).
+    # Like the export, a variable the file does not define ends up empty.
+    # Everything is queried as a string: an `[int]` hint makes hyq fail on a
+    # `$VAR = 24` variable, and the value is only ever used as text here.
+    local name value
+    for name in GTK_THEME ICON_THEME CURSOR_THEME CURSOR_SIZE FONT FONT_SIZE \
+        FONT_STYLE DOCUMENT_FONT DOCUMENT_FONT_SIZE MONOSPACE_FONT \
+        MONOSPACE_FONT_SIZE; do
+        value=$(hyq "$hypr_file" -Q "\$${name}[string]" 2>/dev/null)
+        # Sizes are spliced into sed commands and config files below, where
+        # anything but a plain integer (a newline, `/`, `&`) changes their
+        # meaning: treat such a value as not set.
+        [[ ${name} == *_SIZE && ! ${value} =~ ^[0-9]*$ ]] && value=
+        printf -v "__$name" '%s' "${value}"
+    done
+    GTK_THEME=${__GTK_THEME:-$GTK_THEME}
+    ICON_THEME=${__ICON_THEME:-$ICON_THEME}
+    CURSOR_THEME=${__CURSOR_THEME:-$CURSOR_THEME}
+    CURSOR_SIZE=${__CURSOR_SIZE:-$CURSOR_SIZE}
+    TERMINAL=${__TERMINAL:-$TERMINAL}
+    FONT=${__FONT:-$FONT}
+    FONT_STYLE=${__FONT_STYLE:-''}
+    FONT_SIZE=${__FONT_SIZE:-$FONT_SIZE}
+    DOCUMENT_FONT=${__DOCUMENT_FONT:-$DOCUMENT_FONT}
+    DOCUMENT_FONT_SIZE=${__DOCUMENT_FONT_SIZE:-$DOCUMENT_FONT_SIZE}
+    MONOSPACE_FONT=${__MONOSPACE_FONT:-$MONOSPACE_FONT}
+    MONOSPACE_FONT_SIZE=${__MONOSPACE_FONT_SIZE:-$MONOSPACE_FONT_SIZE}
+    BAR_FONT=${__BAR_FONT:-$BAR_FONT}
+    MENU_FONT=${__MENU_FONT:-$MENU_FONT}
+    NOTIFICATION_FONT=${__NOTIFICATION_FONT:-$NOTIFICATION_FONT}
+}
+quiet=false
+while getopts "qnps:" option; do
+    case $option in
+    n)
+        Theme_Change n
+        export xtrans="grow"
+        ;;
+    p)
+        Theme_Change p
+        export xtrans="outer"
+        ;;
+    s) themeSet="$OPTARG" ;;
+    q)
+        quiet=true
+        ;;
+    *)
+        echo "... invalid option ..."
+        echo "$(basename "$0") -[option]"
+        echo "n : set next theme"
+        echo "p : set previous theme"
+        echo "s : set input theme"
+        exit 1
+        ;;
+    esac
+done
+[[ ! " ${thmList[*]} " =~ " $themeSet " ]] && themeSet="$HYDE_THEME"
+set_conf "HYDE_THEME" "$themeSet"
+print_log -sec "theme" -stat "apply" "$themeSet"
+export reload_flag=1
+source "$LIB_DIR/hyde/globalcontrol.sh"
+source "$SHARE_DIR/hyde/env-theme"
+if [[ -r $HYPRLAND_CONFIG ]]; then
+    if [[ -n $HYPRLAND_INSTANCE_SIGNATURE ]]; then
+        hyprctl eval 'hl.config({misc = {disable_autoreload = true}})'
+    fi
+    if [[ -r "$HYDE_THEME_DIR/hypr.theme" ]]; then
+        print_log -sec "theme" -stat "dump" "hypr.theme to lua"
+        theme_state="$XDG_STATE_HOME/hyde/lua_state/hypr_theme.lua"
+        theme_buffer="$(mktemp)"
+        theme_dump_err="$(mktemp)"
+        if hyq --dump "$HYDE_THEME_DIR/hypr.theme" --schema "$XDG_DATA_HOME/hypr/schema/hyprland-lua.json" --export lua >"$theme_buffer" 2>"$theme_dump_err" &&
+            [ -s "$theme_buffer" ] &&
+            mv "$theme_buffer" "$theme_state"; then
+            rm -f "$theme_dump_err"
+        else
+            rm -f "$theme_buffer"
+            print_log -sec "theme" -crit "error" "could not dump hypr.theme, $theme_state keeps the previous theme"
+            [ -s "$theme_dump_err" ] && print_log -sec "theme" -r "$(cat "$theme_dump_err")"
+            # theme.switch.sh runs at session runtime (hyde-shell reload, the
+            # theme menu, ...), where print_log only writes to the terminal --
+            # there is no HYDE_LOG here, that only exists inside install.sh.
+            # hyq's own stderr is the only thing that says *why* the dump
+            # failed (missing binary, an outdated hyq/hyprquery predating
+            # --dump/--schema/--export, a bad schema, ...), and without a file
+            # it is gone the moment the terminal scrolls, see HyDE#2098.
+            theme_dump_log="$cacheDir/logs/theme.switch.sh.log"
+            mkdir -p "$(dirname "$theme_dump_log")"
+            {
+                printf '%s :: could not dump hypr.theme, %s keeps the previous theme\n' \
+                    "$(date -Iseconds)" "$theme_state"
+                [ -s "$theme_dump_err" ] && cat "$theme_dump_err"
+            } >>"$theme_dump_log"
+            rm -f "$theme_dump_err"
+            exit 1
+        fi
+    fi
+    load_hypr_variables "$HYDE_THEME_DIR/hypr.theme"                               # ? loads the theme vars
+    load_hypr_variables "${XDG_STATE_HOME:-$HOME/.local/state}/hyde/hyprland.conf" # ? loads the parsable user config vars, should override theme vars
+fi
+show_theme_status
+if ! dconf write /org/gnome/desktop/interface/icon-theme "'$ICON_THEME'"; then
+    print_log -sec "theme" -warn "dconf" "failed to set icon theme"
+fi
+if [ -d /run/current-system/sw/share/themes ]; then
+    export themesDir=/run/current-system/sw/share/themes
+fi
+if [ ! -d "$themesDir/$GTK_THEME" ] && [ -d "$HOME/.themes/$GTK_THEME" ]; then
+    cp -rns "$HOME/.themes/$GTK_THEME" "$themesDir/$GTK_THEME"
+fi
+QT5_FONT="${QT5_FONT:-$FONT}"
+QT5_FONT_SIZE="${QT5_FONT_SIZE:-$FONT_SIZE}"
+QT5_MONOSPACE_FONT="${QT5_MONOSPACE_FONT:-$MONOSPACE_FONT}"
+QT5_MONOSPACE_FONT_SIZE="${QT5_MONOSPACE_FONT_SIZE:-${MONOSPACE_FONT_SIZE:-9}}"
+toml_write "$confDir/qt5ct/qt5ct.conf" "Appearance" "icon_theme" "$ICON_THEME"
+toml_write "$confDir/qt5ct/qt5ct.conf" "Fonts" "general" "\"$QT5_FONT,$QT5_FONT_SIZE,-1,5,50,0,0,0,0,0,$QT_FONT_STYLE\""
+toml_write "$confDir/qt5ct/qt5ct.conf" "Fonts" "fixed" "\"$QT5_MONOSPACE_FONT,$QT5_MONOSPACE_FONT_SIZE,-1,5,50,0,0,0,0,0\""
+QT6_FONT="${QT6_FONT:-$FONT}"
+QT6_FONT_SIZE="${QT6_FONT_SIZE:-$FONT_SIZE}"
+QT6_MONOSPACE_FONT="${QT6_MONOSPACE_FONT:-$MONOSPACE_FONT}"
+QT6_MONOSPACE_FONT_SIZE="${QT6_MONOSPACE_FONT_SIZE:-${MONOSPACE_FONT_SIZE:-9}}"
+toml_write "$confDir/qt6ct/qt6ct.conf" "Appearance" "icon_theme" "$ICON_THEME"
+toml_write "$confDir/qt6ct/qt6ct.conf" "Fonts" "general" "\"$QT6_FONT,$QT6_FONT_SIZE,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,$QT_FONT_STYLE\""
+toml_write "$confDir/qt6ct/qt6ct.conf" "Fonts" "fixed" "\"$QT6_MONOSPACE_FONT,${QT6_MONOSPACE_FONT_SIZE:-9},-1,5,400,0,0,0,0,0,0,0,0,0,0,1\""
+toml_write "$confDir/kdeglobals" "Icons" "Theme" "$ICON_THEME"
+toml_write "$confDir/kdeglobals" "General" "TerminalApplication" "$TERMINAL"
+toml_write "$confDir/kdeglobals" "UiSettings" "ColorScheme" "colors"
+toml_write "$confDir/kdeglobals" "KDE" "widgetStyle" "kvantum"
+toml_write "$XDG_DATA_HOME/icons/default/index.theme" "Icon Theme" "Inherits" "$CURSOR_THEME"
+toml_write "$HOME/.icons/default/index.theme" "Icon Theme" "Inherits" "$CURSOR_THEME"
+sed -i -e "/^gtk-theme-name=/c\gtk-theme-name=\"$GTK_THEME\"" \
+    -e "/^include /c\include \"$HOME/.gtkrc-2.0.mime\"" \
+    -e "/^gtk-cursor-theme-name=/c\gtk-cursor-theme-name=\"$CURSOR_THEME\"" \
+    -e "/^gtk-icon-theme-name=/c\gtk-icon-theme-name=\"$ICON_THEME\"" "$HOME/.gtkrc-2.0"
+GTK3_FONT="${GTK3_FONT:-$FONT}"
+GTK3_FONT_SIZE="${GTK3_FONT_SIZE:-$FONT_SIZE}"
+toml_write "$confDir/gtk-3.0/settings.ini" "Settings" "gtk-theme-name" "$GTK_THEME"
+toml_write "$confDir/gtk-3.0/settings.ini" "Settings" "gtk-icon-theme-name" "$ICON_THEME"
+toml_write "$confDir/gtk-3.0/settings.ini" "Settings" "gtk-cursor-theme-name" "$CURSOR_THEME"
+toml_write "$confDir/gtk-3.0/settings.ini" "Settings" "gtk-cursor-theme-size" "$CURSOR_SIZE"
+toml_write "$confDir/gtk-3.0/settings.ini" "Settings" "gtk-font-name" "$GTK3_FONT $GTK3_FONT_SIZE"
+##
+# Makes confDir/gtk-4.0 a real directory with only the theme's files symlinked
+# in, instead of symlinking the whole directory to the theme. A whole-directory
+# symlink makes anything that writes ~/.config/gtk-4.0/settings.ini (nwg-look,
+# kde-gtk-config, ...) write into the theme's own copy instead of the user's;
+# GTK 4 then reads that back as the theme's settings.ini, and a
+# gtk-application-prefer-dark-theme key there puts some GTK 4 apps into an
+# endless reload loop (HyDE-Project/HyDE#2200, upstream GNOME/gtk#8478).
+# settings.ini is therefore never symlinked, overwritten or removed here, so a
+# user's real file always stays theirs across theme switches.
+#
+# Arguments:
+#   $1  confDir/gtk-4.0, the target (may still be the old whole-dir symlink)
+#   $2  themesDir/<theme>/gtk-4.0, the source (may not exist)
+##
+link_gtk4_theme() {
+    local confGtk4="$1" themeGtk4="$2" old settings staged f name
+    staged=""
+    if [ -L "$confGtk4" ]; then
+        old="$(readlink -f -- "$confGtk4")"
+        settings="$old/settings.ini"
+        if [ -f "$settings" ] && [ ! -L "$settings" ]; then
+            # Stage a real settings.ini a tool wrote into the old whole-dir
+            # symlink's target *before* touching the symlink: a failed copy
+            # then leaves the symlink, and the file inside it, exactly as
+            # they were, instead of a failed `mv` after the symlink is
+            # already gone orphaning the file outside the active config.
+            staged="$(mktemp -- "${confGtk4}.settings.ini.XXXXXX")" || return 1
+            if ! cp -p -- "$settings" "$staged"; then
+                rm -f -- "$staged"
+                print_log -sec "theme" -warn "gtk4" "could not migrate '$settings', keeping the old gtk-4.0 symlink"
+                return 1
+            fi
+        fi
+        if ! rm -f -- "$confGtk4" || ! mkdir -p -- "$confGtk4"; then
+            [ -n "$staged" ] && rm -f -- "$staged"
+            print_log -sec "theme" -warn "gtk4" "could not replace the gtk-4.0 symlink with a real directory"
+            return 1
+        fi
+        [ -n "$staged" ] && mv -- "$staged" "$confGtk4/settings.ini"
+    else
+        mkdir -p -- "$confGtk4"
+    fi
+    # drop symlinks from a previous theme that the new one does not provide
+    while IFS= read -r -d '' f; do
+        [ "$(basename -- "$f")" = "settings.ini" ] && continue
+        rm -- "$f"
+    done < <(find "$confGtk4" -mindepth 1 -maxdepth 1 -type l -print0)
+    [ -d "$themeGtk4" ] || return 0
+    while IFS= read -r -d '' f; do
+        name="$(basename -- "$f")"
+        [ "$name" = "settings.ini" ] && continue
+        ln -s -- "$f" "$confGtk4/$name"
+    done < <(find -L "$themeGtk4" -mindepth 1 -maxdepth 1 -print0)
+}
+
+if [ -d "$themesDir/$GTK_THEME/gtk-4.0" ]; then
+    gtk4Theme="$GTK_THEME"
+else
+    gtk4Theme="Wallbash-Gtk"
+    print_log -sec "theme" -stat "use" "'Wallbash-Gtk' as gtk4 theme"
+fi
+if [ -d "$themesDir/$gtk4Theme/gtk-4.0" ]; then
+    link_gtk4_theme "$confDir/gtk-4.0" "$themesDir/$gtk4Theme/gtk-4.0"
+else
+    print_log -sec "theme" -warn "gtk4" "theme directory '$themesDir/$gtk4Theme/gtk-4.0' does not exist"
+fi
+if pkg_installed flatpak; then
+    flatpak \
+        --user override \
+        --filesystem="$themesDir" \
+        --filesystem="$HOME/.themes" \
+        --filesystem="$HOME/.icons" \
+        --filesystem="$HOME/.local/share/icons" \
+        --env=GTK_THEME="$gtk4Theme" \
+        --env=ICON_THEME="$ICON_THEME"
+    flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+fi
+sed -i -e "/^Net\/ThemeName /c\Net\/ThemeName \"$GTK_THEME\"" \
+    -e "/^Net\/IconThemeName /c\Net\/IconThemeName \"$ICON_THEME\"" \
+    -e "/^Gtk\/CursorThemeName /c\Gtk\/CursorThemeName \"$CURSOR_THEME\"" \
+    -e "/^Gtk\/CursorThemeSize /c\Gtk\/CursorThemeSize $CURSOR_SIZE" \
+    "$confDir/xsettingsd/xsettingsd.conf"
+if [ ! -L "$HOME/.themes/$GTK_THEME" ] && [ -d "$themesDir/$GTK_THEME" ]; then
+    print_log -sec "theme" -warn "linking" "$GTK_THEME to ~/.themes to fix GTK4 not following xdg"
+    mkdir -p "$HOME/.themes"
+    rm -rf "$HOME/.themes/$GTK_THEME"
+    ln -snf "$themesDir/$GTK_THEME" "$HOME/.themes/"
+fi
+if [ -f "$HOME/.Xresources" ]; then
+    sed -i -e "/^Xcursor\.theme:/c\Xcursor.theme: $CURSOR_THEME" \
+        -e "/^Xcursor\.size:/c\Xcursor.size: $CURSOR_SIZE" "$HOME/.Xresources"
+    grep -q "^Xcursor\.theme:" "$HOME/.Xresources" || echo "Xcursor.theme: $CURSOR_THEME" >>"$HOME/.Xresources"
+    grep -q "^Xcursor\.size:" "$HOME/.Xresources" || echo "Xcursor.size: $CURSOR_SIZE" >>"$HOME/.Xresources"
+else
+    cat >"$HOME/.Xresources" <<EOF
+Xcursor.theme: $CURSOR_THEME
+Xcursor.size: $CURSOR_SIZE
+EOF
+fi
+if [ -f "$HOME/.Xdefaults" ]; then
+    sed -i -e "/^Xcursor\.theme:/c\Xcursor.theme: $CURSOR_THEME" \
+        -e "/^Xcursor\.size:/c\Xcursor.size: $CURSOR_SIZE" "$HOME/.Xdefaults"
+    grep -q "^Xcursor\.theme:" "$HOME/.Xdefaults" || echo "Xcursor.theme: $CURSOR_THEME" >>"$HOME/.Xdefaults"
+    grep -q "^Xcursor\.size:" "$HOME/.Xdefaults" || echo "Xcursor.size: $CURSOR_SIZE" >>"$HOME/.Xdefaults"
+fi
+export -f pkg_installed
+if [[ -d "$HYDE_CACHE_HOME/wallpapers/" ]]; then
+    find -H "$HYDE_CACHE_HOME/wallpapers" -name "*.png" -exec sh -c '
+        for file; do
+            base=$(basename "$file" .png)
+            if pkg_installed ${base}; then
+                "${LIB_DIR}/hyde/wallpaper.sh" --link --backend "${base}"
+            fi
+        done
+    ' sh {} + &
+    _link_pid=$!
+    trap 'wait "$_link_pid" 2>/dev/null' EXIT
+fi
+theme_wallpaper="$(readlink "$HYDE_THEME_DIR/wall.set")"
+if [ -z "$theme_wallpaper" ] || [ ! -e "$theme_wallpaper" ]; then
+    if [ -d "$HYDE_THEME_DIR/wallpapers" ]; then
+        theme_wallpaper="$(find -H "$HYDE_THEME_DIR/wallpapers" -type f -print -quit)"
+    else
+        print_log -sec "theme" -warn "wallpaper" "$HYDE_THEME carries no wallpapers directory"
+        theme_wallpaper=""
+    fi
+    [ -n "$theme_wallpaper" ] && ln -fs "$theme_wallpaper" "$HYDE_THEME_DIR/wall.set"
+fi
+if [ -z "$theme_wallpaper" ]; then
+    print_log -sec "theme" -crit "error" "no wallpaper available for $HYDE_THEME"
+    exit 1
+fi
+wallpaper_failure_is_fatal() {
+    case "$1" in
+    "${HYDE_STATUS_CACHE_FAILED:-3}" | "${HYDE_STATUS_COLOURS_FAILED:-4}") return 0 ;;
+    esac
+    return 1
+}
+
+wallpaper_status=0
+if [ "$quiet" = true ]; then
+    # Captured through a file, not "$(...)": a substitution waits until every
+    # process holding its pipe exits, so a wallpaper daemon the backend starts
+    # would block it forever and freeze the installer (#2156).
+    wallpaper_log="$(mktemp)"
+    "$LIB_DIR/hyde/wallpaper.sh" -s "$theme_wallpaper" --global >"$wallpaper_log" 2>&1 || wallpaper_status=$?
+    wallpaper_output="$(cat "$wallpaper_log")"
+    rm -f "$wallpaper_log"
+else
+    "$LIB_DIR/hyde/wallpaper.sh" -s "$theme_wallpaper" --global || wallpaper_status=$?
+fi
+if [ "$wallpaper_status" -ne 0 ]; then
+    [ -n "${wallpaper_output:-}" ] && printf '%s\n' "$wallpaper_output" >&2
+    if wallpaper_failure_is_fatal "$wallpaper_status"; then
+        print_log -sec "theme" -crit "error" "generating the colour state for $HYDE_THEME failed with $wallpaper_status, the state on disk is the one the previous theme left"
+        exit 1
+    fi
+    print_log -sec "theme" -warn "wallpaper" "backend exited with $wallpaper_status, continuing with the colour state"
+fi
+if ! wallbash_state_is_complete; then
+    print_log -sec "theme" -stat "colours" "generating the colour state for $HYDE_THEME"
+    if ! "$LIB_DIR/hyde/color.set.sh" "$theme_wallpaper"; then
+        print_log -sec "theme" -crit "error" "could not generate the colour state from $theme_wallpaper"
+        exit 1
+    fi
+fi
+if ! wallbash_state_is_complete; then
+    print_log -sec "theme" -crit "error" "colour state is still incomplete for $HYDE_THEME"
+    exit 1
+fi

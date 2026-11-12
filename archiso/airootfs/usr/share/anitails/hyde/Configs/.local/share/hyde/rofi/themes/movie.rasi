@@ -1,0 +1,192 @@
+/**
+ * ROFI Layout
+ *
+ * AniSub movie browser (hyde-shell rofi.movie).
+ *
+ * It is the clipboard dropdown with the two things the movie menus need and
+ * every other HyDE layout lacks:
+ *   - `message` inside mainbox, so the `-mesg` line (page info, the movie
+ *     summary, hints) is drawn instead of being dropped by the layout;
+ *   - poster icons plus explicit text colours, so titles and the summary stay
+ *     readable on the blurred wallpaper.
+ *
+ * User: The HyDE Project [ aniDE movie menu ]
+ * Copyright: The HyDE Project
+ */
+
+// Config //
+configuration {
+    modi:                        "drun";
+    show-icons:                  true;
+    display-drun:                "";
+    drun-display-format:         "{name}";
+    font:                        "JetBrainsMono Nerd Font 10";
+}
+
+@theme "~/.config/rofi/theme.rasi"
+
+
+// Main //
+window {
+    width:                       46em;
+    height:                      32em;
+    transparency:                "real";
+    fullscreen:                  false;
+    enabled:                     true;
+    cursor:                      "default";
+    spacing:                     0em;
+    padding:                     0em;
+    border-color:                @main-br;
+    background-color:            @main-bg;
+}
+mainbox {
+    enabled:                     true;
+    spacing:                     0em;
+    padding:                     0em;
+    orientation:                 vertical;
+    children:                    [ "message" , "wallbox" , "listbox" ];
+    background-color:            transparent;
+}
+
+
+// Message: the -mesg line (summary, page info, hints) //
+message {
+    enabled:                     true;
+    padding:                     0.5em 0.9em;
+    border:                      0px 0px 1px 0px;
+    border-color:                @main-br;
+    background-color:            @main-bg;
+    text-color:                  @main-fg;
+}
+textbox {
+    enabled:                     true;
+    padding:                     0.1em 0em;
+    vertical-align:              0.0;
+    horizontal-align:            0.0;
+    cursor:                      inherit;
+    background-color:            transparent;
+    text-color:                  inherit;
+}
+
+
+// Inputs //
+wallbox {
+    spacing:                     0em;
+    padding:                     0em;
+    expand:                      false;
+    orientation:                 horizontal;
+    background-color:            transparent;
+    background-image:            url("~/.cache/hyde/wall.blur", width);
+    children:                    [ "wallframe" , "inputbar" ];
+}
+wallframe {
+    width:                       4em;
+    spacing:                     0em;
+    padding:                     0em;
+    expand:                      false;
+    background-color:            @main-bg;
+    background-image:            url("~/.cache/hyde/wall.quad", width);
+}
+inputbar {
+    enabled:                     true;
+    padding:                     0em;
+    children:                    [ "prompt" , "entry" ];
+    background-color:            @main-bg;
+    expand:                      true;
+}
+prompt {
+    enabled:                     true;
+    padding:                     0.7em 0.2em 0.7em 0.9em;
+    text-color:                  @main-br;
+    background-color:            transparent;
+}
+entry {
+    enabled:                     true;
+    padding:                     0.7em 0.9em 0.7em 0.2em;
+    text-color:                  @main-fg;
+    placeholder:                 "gõ để lọc…";
+    placeholder-color:           @main-fg;
+    background-color:            transparent;
+}
+
+
+// Lists //
+listbox {
+    spacing:                     0em;
+    padding:                     0em;
+    orientation:                 horizontal;
+    children:                    [ "previewbox" , "listview" ];
+    background-color:            transparent;
+}
+previewbox {
+    width:                       24em;
+    expand:                      false;
+    spacing:                     0em;
+    padding:                     0em;
+    orientation:                 vertical;
+    children:                    [ "icon-current-entry" ];
+    background-color:            transparent;
+    background-image:            url("~/.cache/hyde/wall.thmb", height);
+}
+icon-current-entry {
+    enabled:                     true;
+    expand:                      true;
+    size:                        24em;
+    padding:                     0em;
+    vertical-align:              0.5;
+    horizontal-align:            0.5;
+    background-color:            transparent;
+}
+listview {
+    enabled:                     true;
+    padding:                     0.4em;
+    spacing:                     0em;
+    columns:                     1;
+    lines:                       10;
+    cycle:                       true;
+    dynamic:                     true;
+    scrollbar:                   false;
+    fixed-height:                true;
+    fixed-columns:               false;
+    expand:                      true;
+    cursor:                      "default";
+    background-color:            transparent;
+    text-color:                  @main-fg;
+}
+
+
+// Elements //
+element {
+    enabled:                     true;
+    spacing:                     0.7em;
+    padding:                     0.45em 0.65em;
+    cursor:                      pointer;
+    background-color:            transparent;
+    text-color:                  @main-fg;
+}
+element selected.normal {
+    background-color:            @select-bg;
+    text-color:                  @select-fg;
+}
+element-icon {
+    size:                        2.8em;
+    cursor:                      inherit;
+    background-color:            transparent;
+    text-color:                  inherit;
+}
+element-text {
+    vertical-align:              0.5;
+    horizontal-align:            0.0;
+    cursor:                      inherit;
+    background-color:            transparent;
+    text-color:                  inherit;
+}
+
+
+// Error message //
+error-message {
+    padding:                     0.6em 0.9em;
+    background-color:            @main-bg;
+    text-color:                  @main-fg;
+    children:                    [ "textbox" ];
+}

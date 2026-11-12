@@ -33,7 +33,16 @@ Không một hệ điều hành nào là "bất khả xâm phạm". Tài liệu 
 
 ### 2.4. Khai Thác 0-Day Trình Duyệt Kết Hợp Thoát Khỏi Hộp Cát Nhân / Phiên D-Bus (`#21524`)
 - Tor Browser `16.0` được bao bọc bởi 3 lớp: hộp cát nội bộ của Firefox (`RLBox`/seccomp), `bubblewrap` (`--unshare-all`) và hồ sơ AppArmor, cùng không gian tên mạng riêng `tbb`. Ngay cả khi trình duyệt bị khai thác thực thi mã từ xa (RCE), mã độc trong `tbb` **vẫn không thể gửi gói tin trực tiếp ra Internet để lộ IP thật** vì không gian tên `tbb` chỉ có đường dẫn duy nhất sang cổng SOCKS/onion-grater của Tor.
-- Tuy nhiên, trên môi trường máy tính để bàn Wayland/GNOME, việc chia sẻ một số giao diện phiên đồ họa/âm thanh (`Wayland socket`, `PipeWire`) hoặc lỗ hổng leo thang đặc quyền 0-day ngay trong nhân Linux vẫn là bề mặt tấn công tồn dư (tương tự giới hạn kiến trúc AppArmor/D-Bus được dự án Tails ghi nhận tại `#21524`).
+- Tuy nhiên, trên môi trường máy tính để bàn Wayland/Hyprland (dotfiles AniDE/HyDE), việc chia sẻ một số giao diện phiên đồ họa/âm thanh (`Wayland socket`, `PipeWire`) hoặc lỗ hổng leo thang đặc quyền 0-day ngay trong nhân Linux vẫn là bề mặt tấn công tồn dư (tương tự giới hạn kiến trúc AppArmor/D-Bus được dự án Tails ghi nhận tại `#21524`).
+
+### 2.4b. Bề Mặt Cấu Hình Giao Diện (Dotfiles AniDE/HyDE)
+
+- AniTails chuyển từ GNOME sang **Hyprland + dotfiles AniDE/HyDE** (`docs/HYDE_INTEGRATION.md`). Đây là mã cấu hình bên thứ ba (GPL-3.0-only, ~483 tệp) chạy **dưới quyền người dùng `amnesia`**, không có tiến trình đồ họa nào chạy root (không display manager).
+- Rủi ro tồn dư: một lỗi trong script HyDE (`hyde-shell`, `wallbash`, `rofi.*.sh`) chạy trong phiên người dùng có thể làm lộ dữ liệu **trong phạm vi `$HOME`** hoặc gây treo phiên. AniTails giảm thiểu bằng cách:
+  1. Ghim dotfiles theo commit + **SHA-256 từng tệp**; `anitails-hyde-seed` từ chối seed nếu manifest sai lệch, và quá trình build chạy `sha256sum -c` trong chroot.
+  2. **Không** đóng gói binary dựng sẵn (`hydectl`, `hyde-ipc`) và **không** dùng AUR (`quickshell`, `hyprquery`, `wlogout`).
+  3. Không chạy installer upstream (`Scripts/install*.sh`, `deez-dots`) trên ISO — chỉ seed tệp tĩnh.
+- Giới hạn còn lại: các script đó vẫn có thể gọi công cụ mạng trong phiên người dùng. Tuy nhiên tường lửa `nftables` chỉ cho UID `tor` (43) mở kết nối TCP ra ngoài, nên mọi nỗ lực của script người dùng đều bị chặn ở tầng nhân (fail-closed), trừ khi đi qua SOCKS của Tor.
 
 ### 2.5. UEFI Secure Boot Trên Bản Phân Phối Độc Lập
 - Khác với bản phát hành chính thức của Tails sử dụng bootloader `shim` được Microsoft ký số sẵn, **AniTails là bản dẫn xuất độc lập trên nền Arch Linux nên ảnh ISO tự build không đi kèm chữ ký khóa Microsoft UEFI CA**.

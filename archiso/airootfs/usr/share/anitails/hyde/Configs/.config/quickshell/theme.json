@@ -1,0 +1,16 @@
+{
+  "barBg": "#141313",
+  "mainBg": "#141313",
+  "surfaceBg": "#1c1b1c",
+  "layer2Bg": "#2b2a2a",
+  "mainFg": "#e6e1e1",
+  "subFg": "#948f94",
+  "actBg": "#cbc4cb",
+  "accentSecondary": "#4d4b4d",
+  "onSecondaryContainer": "#ece6e9",
+  "actFg": "#322f34",
+  "hvrBg": "#2b2a2a",
+  "hvrFg": "#e6e1e1",
+  "borderColor": "#49464a",
+  "cornerRadius": 23
+}

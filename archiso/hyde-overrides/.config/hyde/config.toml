@@ -1,0 +1,45 @@
+# AniTails desktop configuration for HyDE (AniDE dotfiles).
+#
+# HyDE reads this file through its schema
+# (~/.local/share/hyde/schema/config.toml). AniTails overrides only the entries
+# that conflict with the live-system security model:
+#
+#   * browser      -> Tor Browser (AniTails drops all clearnet traffic)
+#   * editor       -> vim in kitty (no VS Code on the ISO)
+#   * lockscreen   -> a notice, because `amnesia` has no password to unlock with
+#   * start.bar    -> Waybar fallback, Quickshell is AUR-only
+#   * start.wallpaper -> one pinned wallpaper, no network/theme fetch
+#   * wallpaper.backend -> hyprpaper (only official wallpaper daemon shipped)
+#
+# Everything else keeps the HyDE defaults.
+"$schema" = "https://raw.githubusercontent.com/HyDE-Project/HyDE/refs/heads/master/Configs/.local/share/hyde/schema/config.toml.json"
+
+[desktop]
+bar = "waybar"
+
+[desktop.app]
+browser = "/usr/local/bin/anitails-tor-browser"
+editor = "kitty --single-instance -e vim"
+explorer = "dolphin"
+lockscreen = "/usr/local/lib/anitails-hyde-desktop/lockscreen-disabled.sh"
+quickapps = "kitty --single-instance"
+terminal = "kitty --single-instance"
+
+[desktop.start]
+bar = "/usr/local/lib/anitails-hyde-desktop/bar.sh"
+wallpaper = "/usr/local/lib/anitails-hyde-desktop/wallpaper.sh"
+
+[desktop.ui]
+cursor_size = 24
+cursor_theme = "Bibata-Modern-Ice"
+font = "Cantarell"
+font_size = 10
+gtk_theme = "Adwaita"
+icon_theme = "Adwaita"
+monospace_font = "JetBrainsMono Nerd Font Mono"
+monospace_font_size = 9
+notification_font = "JetBrainsMono Nerd Font"
+bar_font = "JetBrainsMono Nerd Font"
+
+[wallpaper]
+backend = "hyprpaper"

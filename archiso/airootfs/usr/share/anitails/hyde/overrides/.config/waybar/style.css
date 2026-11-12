@@ -1,0 +1,73 @@
+/* AniTails fallback Waybar theme — matches the HyDE "HyDE" palette. */
+
+* {
+  border: none;
+  border-radius: 0;
+  font-family: "JetBrainsMono Nerd Font", "Cantarell", sans-serif;
+  font-size: 12px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: rgba(17, 17, 27, 0.86);
+  color: #cdd6f4;
+  border-radius: 12px;
+}
+
+.modules-left,
+.modules-center,
+.modules-right {
+  padding: 0 8px;
+}
+
+#workspaces button {
+  padding: 0 6px;
+  margin: 4px 2px;
+  color: #7f849c;
+  background: transparent;
+  border-radius: 8px;
+}
+
+#workspaces button.active {
+  color: #11111b;
+  background: #89b4fa;
+}
+
+#workspaces button.urgent {
+  color: #11111b;
+  background: #f38ba8;
+}
+
+#window {
+  color: #a6adc8;
+  padding-left: 8px;
+}
+
+#clock {
+  color: #cdd6f4;
+  font-weight: bold;
+}
+
+#pulseaudio,
+#network,
+#battery,
+#tray {
+  padding: 0 8px;
+  color: #cdd6f4;
+}
+
+#pulseaudio.muted {
+  color: #f38ba8;
+}
+
+#battery.warning {
+  color: #f9e2af;
+}
+
+#battery.critical {
+  color: #f38ba8;
+}
+
+#network.disconnected {
+  color: #f38ba8;
+}

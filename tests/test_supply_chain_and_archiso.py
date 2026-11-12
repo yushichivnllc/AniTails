@@ -47,13 +47,41 @@ class TestSupplyChainAndArchiso(unittest.TestCase):
         sudoers = (REPO_ROOT / "archiso/airootfs/etc/sudoers.d/00-anitails-hardening").read_text(encoding="utf-8")
         active_sudoers = "\n".join(ln for ln in sudoers.splitlines() if not ln.lstrip().startswith("#"))
         self.assertNotIn("NOPASSWD", active_sudoers)
-        gdm = (REPO_ROOT / "archiso/airootfs/etc/gdm/custom.conf").read_text(encoding="utf-8")
-        self.assertIn("AutomaticLogin=amnesia", gdm)
-        self.assertNotIn("AutomaticLogin=root", gdm)
+        # No display manager: getty autologins the unprivileged live user and the
+        # login shell is replaced by the Hyprland session launcher.
+        autologin = (
+            REPO_ROOT
+            / "archiso/airootfs/etc/systemd/system/getty@tty1.service.d/20-anitails-autologin.conf"
+        ).read_text(encoding="utf-8")
+        self.assertIn("--autologin amnesia", autologin)
+        self.assertNotIn("--autologin root", autologin)
+        self.assertIn("ExecStart=", autologin)  # must reset the vendor ExecStart
+        profile_hook = (REPO_ROOT / "archiso/airootfs/etc/profile.d/99-anitails-session.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("anitails-hyprland-session", profile_hook)
+        self.assertIn("XDG_VTNR", profile_hook)
+
+        # GNOME is gone: no greeter, no dconf database, no GNOME packages.
+        self.assertFalse((REPO_ROOT / "archiso/airootfs/etc/gdm").exists())
+        self.assertFalse((REPO_ROOT / "archiso/airootfs/etc/dconf").exists())
         pkgs = (REPO_ROOT / "archiso/packages.x86_64").read_text(encoding="utf-8")
+        package_names = {ln.strip() for ln in pkgs.splitlines() if ln.strip() and not ln.startswith("#")}
+        for gone in ("gdm", "gnome-shell", "gnome-session", "nautilus", "dconf",
+                     "xdg-desktop-portal-gnome", "gnome-control-center", "gnome-console"):
+            self.assertNotIn(gone, package_names)
+        for present in ("hyprland", "uwsm", "hypridle", "hyprlock", "waybar",
+                        "xdg-desktop-portal-hyprland", "hyprpolkitagent"):
+            self.assertIn(present, package_names)
+        # The GDM UID must no longer be allowed to reach the Tor ControlPort.
+        nft = (REPO_ROOT / "archiso/airootfs/etc/nftables.conf").read_text(encoding="utf-8")
+        self.assertNotIn("GDM_UID", nft)
+        self.assertIn("define AMNESIA_UID = 1000", nft)
         self.assertNotIn("unsafe-browser", pkgs)
         self.assertNotIn("synaptic", pkgs)
         self.assertNotIn("pidgin", pkgs)
+        # No clearnet browser either: Tor Browser is the only browser.
+        self.assertNotIn("\nfirefox\n", pkgs)
 
         # 4. Every path in profiledef.sh file_permissions MUST exist in archiso/airootfs/
         #    because mkarchiso >= 92-1 runs `realpath -q` BEFORE pacstrap!

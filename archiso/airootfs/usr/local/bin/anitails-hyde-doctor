@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# AniTails — report which HyDE (AniDE) components are available on this ISO.
+#
+# Everything listed as "not shipped" was left out on purpose because it only
+# exists in the AUR (unaudited third-party builds) or is an opaque prebuilt
+# binary. See docs/HYDE_INTEGRATION.md.
+set -uo pipefail
+
+ok=0
+missing=0
+
+row() {
+    local state="$1" name="$2" note="${3:-}"
+    if [[ $state == ok ]]; then
+        printf '  \033[32m[ok]\033[0m   %-22s %s\n' "$name" "$note"
+        ok=$((ok + 1))
+    else
+        printf '  \033[33m[--]\033[0m   %-22s %s\n' "$name" "$note"
+        missing=$((missing + 1))
+    fi
+}
+
+has() {
+    if command -v "$1" >/dev/null 2>&1; then row ok "$1" "$2"; else row no "$1" "$2"; fi
+}
+
+printf '\nAniTails desktop — Hyprland + AniDE/HyDE dotfiles\n'
+printf '=================================================\n'
+if [[ -f /usr/share/anitails/hyde/UPSTREAM.json ]]; then
+    python3 - <<'PY'
+import json
+data = json.load(open("/usr/share/anitails/hyde/UPSTREAM.json", encoding="utf-8"))
+print(f"  dotfiles : {data.get('repository')} @ {str(data.get('commit'))[:12]}")
+print(f"  version  : {data.get('dotfiles_version')}  (vendored {data.get('vendored_at_utc')} UTC)")
+PY
+fi
+
+printf '\nCompositor & session\n'
+has hyprland "Wayland compositor (HyDE Lua config)"
+has uwsm "Wayland session manager"
+has hyprctl "compositor control socket"
+has hypridle "idle daemon (no lock listener)"
+has hyprlock "lock screen (disabled: no live password)"
+
+printf '\nDesktop shell\n'
+has waybar "fallback status bar (AniTails config)"
+has rofi "launcher / menus (HyDE rofi menus)"
+has dunst "notifications"
+has cliphist "clipboard history"
+if [[ -x $HOME/.local/lib/hyde/grimblast ]] || command -v grimblast >/dev/null 2>&1; then
+    row ok "grimblast" "screenshots (vendored from AniTails dotfiles)"
+else
+    row no "grimblast" "screenshots"
+fi
+has hyprpaper "wallpaper daemon"
+has hyprpicker "colour picker"
+
+printf '\nAniTails security tooling\n'
+has anitails-tor-browser "Tor Browser launcher"
+has anitails-tor-connect "Tor connection assistant"
+has anitails-persistence "LUKS2 persistent storage"
+has anitails-verify-truststore "CA trust store auditor"
+
+printf '\nIntentionally not shipped (AUR-only or prebuilt blob)\n'
+row no "quickshell" "HyDE default bar — use Waybar instead"
+row no "hyprquery" "HyDE theme colour query CLI — static palette in use"
+row no "wlogout" "HyDE logout menu — use hyprctl dispatch exit"
+row no "hydectl" "HyDE Go CLI — shell scripts do not need it"
+row no "hyde-ipc" "HyDE IPC helper binary"
+
+printf '\nDotfile seed status\n'
+if [[ -f $HOME/.local/state/anitails/hyde-seed.json ]]; then
+    python3 - "$HOME/.local/state/anitails/hyde-seed.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+print(f"  seeded {data.get('created')} file(s) at {data.get('seeded_at')} "
+      f"({data.get('skipped_existing')} kept from a previous run)")
+PY
+else
+    printf '  seed state missing — run: /usr/local/lib/anitails-hyde-seed --check\n'
+fi
+
+printf '\n%d component(s) present, %d intentionally absent.\n\n' "$ok" "$missing"

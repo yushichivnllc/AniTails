@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=AniDE Settings
+Comment=Configure AniDE appearance and desktop tools
+Exec=hyde-shell anide-settings
+Icon=preferences-system
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=theme;wallpaper;waybar;hyprland;appearance;
+StartupNotify=true

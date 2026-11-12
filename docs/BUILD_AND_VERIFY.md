@@ -31,6 +31,31 @@ python3 tests/run_all_tests.py
 
 ---
 
+## 2b. Bước 1b: Xác Minh Dotfiles Giao Diện AniDE/HyDE (Bắt Buộc)
+
+Giao diện Hyprland được cấu hình bằng cây dotfiles vendor tại
+`archiso/airootfs/usr/share/anitails/hyde/`. Trước khi build, xác minh manifest
+SHA-256 (bước này cũng tự chạy trong `scripts/build-iso.sh`, trong chroot bởi
+`anitails-alpm-finalize`, và ở mỗi lần đăng nhập bởi `anitails-hyde-seed`):
+
+```bash
+python3 scripts/sync-hyde-dotfiles.py --check
+# OK: 483 vendored dotfiles match MANIFEST.sha256
+```
+
+Nếu cần cập nhật lên commit AniDE mới:
+
+```bash
+git clone --depth 1 https://github.com/hyprdes/AniDE /tmp/AniDE
+python3 scripts/sync-hyde-dotfiles.py --source /tmp/AniDE   # vendor + regenerate manifest
+python3 -m unittest tests.test_hyde_dotfiles -v             # 16 test
+```
+
+Xem [`HYDE_INTEGRATION.md`](HYDE_INTEGRATION.md) để biết danh sách tệp bị loại trừ
+(`dconf`, `hydectl`, `hyde-ipc`, …) và lý do.
+
+---
+
 ## 3. Bước 2: Biên Dịch Sạch Các Gói Nội Bộ Trong Clean Chroot (`pkgctl build`) & Ký Module Nhân
 
 Không bao giờ biên dịch gói bằng `makepkg` trực tiếp trên hệ thống đang mở mạng lộn xộn; luôn sử dụng clean chroot của `devtools` (`pkgctl build`). Khi build các profile có driver NVIDIA (`nvidia-modern`, `nvidia-legacy-580xx`, `nvidia-cuda-optional`), tạo một cặp khóa ký module nhân dùng một lần (`ANITAILS_KMOD_KEY` / `ANITAILS_KMOD_CERT`) để nhúng chứng chỉ công khai vào `linux-anitails` và ký X.509 cho `nvidia-open-anitails` / `nvidia-580xx-anitails` (giữ nguyên `module.sig_enforce=1`), sau đó **hủy khóa bí mật trước khi đóng gói SquashFS**:
