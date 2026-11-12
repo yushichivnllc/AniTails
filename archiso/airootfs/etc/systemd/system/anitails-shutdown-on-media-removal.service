@@ -1,6 +1,6 @@
 [Unit]
 Description=Emergency Session Termination & Memory Wipe on Live Boot Media Removal
-After=anitails-initramfs-restore.service
+After=systemd-user-sessions.service gdm.service anitails-initramfs-restore.service udisks2.service
 ConditionKernelCommandLine=!copytoram=y
 
 [Service]
@@ -11,4 +11,4 @@ ProtectHome=yes
 ProtectSystem=full
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=graphical.target
