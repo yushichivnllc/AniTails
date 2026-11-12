@@ -48,7 +48,22 @@ if [[ -r /run/anitails/gpu.env ]]; then
     log "GPU environment: $(tr '\n' ' ' </run/anitails/gpu.env)"
 fi
 
-# 3. Hand over to Hyprland. `uwsm start` is blocking; it returns when the
+# 3. Virtual machines (QEMU virtio-gpu/bochs, no virgl) have no hardware GL
+#    driver. Force Mesa's llvmpipe and tell the compositor not to request DRM
+#    tiling modifiers (llvmpipe cannot allocate them); otherwise Hyprland dies
+#    at EGL init and the ISO would never reach a session — including in the CI
+#    QEMU boot gate. Real GPUs (GBM_BACKEND set by anitails-gpu-select) are
+#    left untouched.
+if [[ ! -s /run/anitails/gpu.env ]] || ! grep -qs '^GBM_BACKEND=' /run/anitails/gpu.env; then
+    if /usr/bin/systemd-detect-virt --vm >/dev/null 2>&1; then
+        export LIBGL_ALWAYS_SOFTWARE=1
+        export WLR_DRM_NO_MODIFIERS=1
+        export WLR_RENDERER_ALLOW_SOFTWARE=1
+        log "virtual machine detected — using Mesa llvmpipe without DRM modifiers"
+    fi
+fi
+
+# 4. Hand over to Hyprland. `uwsm start` is blocking; it returns when the
 #    session ends.
 attempt=0
 while :; do

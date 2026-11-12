@@ -216,11 +216,21 @@ python3 tests/run_all_tests.py
 | Màu theme không đổi theo ảnh nền | Thiếu `hyprquery` (AUR) | Chỉnh tay `~/.config/hypr/themes/colors.conf` |
 | "dotfile verification failed" | SquashFS/homed bị sửa | Khởi động lại; nếu lặp lại, kiểm tra ISO |
 
+### 7.1. Máy ảo & phần mềm dựng hình
+
+Trong QEMU/KVM (và mọi máy ảo không có virgl), không có driver GL phần cứng. Nếu
+`/run/anitails/gpu.env` không đặt `GBM_BACKEND` (tức `anitails-gpu-select` xác định
+không có GPU NVIDIA/không có tầng tăng tốc), `anitails-hyprland-session` tự đặt
+`LIBGL_ALWAYS_SOFTWARE=1`, `WLR_DRM_NO_MODIFIERS=1` và `WLR_RENDERER_ALLOW_SOFTWARE=1`
+trước khi gọi `uwsm`. Không có các biến này, Hyprland chết ngay ở bước khởi tạo EGL
+(Modifiers không được llvmpipe hỗ trợ) và ISO sẽ không bao giờ lên phiên — kể cả trong
+cổng boot QEMU của CI. Máy thật có GPU (có `GBM_BACKEND`) **không** bị ảnh hưởng.
+
 ---
 
 ## 8. Kiểm Thử Tự Động
 
-`tests/test_hyde_dotfiles.py` (16 test) bao phủ:
+`tests/test_hyde_dotfiles.py` (18 test) bao phủ:
 
 - manifest khớp 100% (`sync-hyde-dotfiles.py --check`), provenance + license GPL-3.0, commit khớp `snapshot.lock.json`;
 - không có ELF/dconf/hydectl trong cây vendor; tập override đúng như tài liệu;
@@ -229,4 +239,7 @@ python3 tests/run_all_tests.py
 - autologin chỉ `amnesia`, không còn gdm/display-manager;
 - overrides phản ánh chính sách (Tor Browser, không lock, không suspend, bar fallback);
 - danh sách gói có Hyprland, không có GNOME/`firefox`/`quickshell`; `snapshot.lock.json` không còn `gnome-shell`/`gdm`;
-- wallpaper PNG + doctor tồn tại; mọi đường dẫn `file_permissions` tồn tại trước `pacstrap`.
+- wallpaper PNG + doctor tồn tại; mọi đường dẫn `file_permissions` tồn tại trước `pacstrap`;
+- **cổng boot QEMU của CI** (`anitails-virtio-boot-status`) chờ đúng phiên mới — `getty@tty1`
+  + tiến trình `Hyprland` của `amnesia` — chứ không còn chờ `gdm.service`/`gnome-shell`;
+- mọi tệp vendor đều được `git` track (không bị `.gitignore` của upstream nuốt mất).

@@ -108,7 +108,7 @@ for iso in "${ISO_FILES[@]}"; do
                 exit 1
             fi
         done
-        echo "[verify-iso] Verified post-pacstrap finalization & GDM/firewall/watchdog symlinks inside airootfs.sfs."
+        echo "[verify-iso] Verified post-pacstrap finalization & session/firewall/watchdog symlinks inside airootfs.sfs."
     fi
 done
 

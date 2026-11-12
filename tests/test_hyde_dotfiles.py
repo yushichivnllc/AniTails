@@ -269,6 +269,28 @@ class TestDesktopInventory(unittest.TestCase):
             self.assertIn("minimum_version", stack[pkg])
             self.assertIn("repo", stack[pkg])
 
+    def test_ci_boot_reporter_tracks_the_hyprland_session(self) -> None:
+        """The QEMU gate must not wait for a display manager that no longer exists.
+
+        `anitails-virtio-boot-status` used to require `gdm.service` + a
+        gnome-shell session, so after the GNOME removal it would always report
+        ANITAILS_OS_BOOT_FAILED and the ISO job could never go green.
+        """
+        reporter = (AIROOTFS / "usr/local/lib/anitails-virtio-boot-status").read_text(encoding="utf-8")
+        self.assertNotIn("gdm", reporter.lower())
+        self.assertNotIn("gnome-shell", reporter)
+        self.assertIn("ANITAILS_OS_BOOT_READY", reporter)
+        self.assertIn("-x Hyprland", reporter)
+        self.assertIn("getty@tty1.service", reporter)
+
+        boot = (REPO_ROOT / "scripts/ci-boot-test-iso.sh").read_text(encoding="utf-8")
+        self.assertNotIn("gnome-shell", boot)
+        self.assertIn("amnesia Hyprland session", boot)
+
+        launcher = (AIROOTFS / "usr/local/bin/anitails-hyprland-session").read_text(encoding="utf-8")
+        self.assertIn("LIBGL_ALWAYS_SOFTWARE=1", launcher, "VMs need the llvmpipe fallback")
+        self.assertIn("systemd-detect-virt --vm", launcher)
+
     def test_wallpaper_and_doctor_ship_with_the_iso(self) -> None:
         wallpaper = AIROOTFS / "usr/share/anitails/wallpapers/anitails-default.png"
         self.assertTrue(wallpaper.is_file())

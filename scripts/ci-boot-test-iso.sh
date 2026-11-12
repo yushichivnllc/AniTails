@@ -3,13 +3,15 @@
 # ==============================================================================
 # Boots the unmodified built `.iso` image in TWO distinct firmware/media/GPU modes:
 #   1. Legacy BIOS + USB 3.0 Flash Stick (`isohdpfx.bin` -> `syslinux` + `virtio-vga` KMS)
-#   2. Modern UEFI (`edk2-ovmf` -> `BOOTX64.EFI` `systemd-boot` + `stdvga`/`bochs-drm` KMS)
+#   2. Modern UEFI (`edk2-ovmf` -> `BOOTX64.EFI` `systemd-boot` + virtio-gpu KMS)
 #
 # Asserts that each mode boots all the way into the live operating system:
 #   - Kernel `7.3.3-anitails1` unpacks zstd initramfs & mounts SquashFS + tmpfs overlayfs
 #   - `nftables.service` loads `table inet anitails_filter`
 #   - `anitails-create-netns.service` brings up `tbb` isolated namespace
-#   - `gdm.service` starts Wayland and auto-logs in user `amnesia` (`gnome-session`/`gnome-shell`)
+#   - `getty@tty1` auto-logs in `amnesia`, the login shell execs
+#     `anitails-hyprland-session`, and `uwsm` starts the Hyprland compositor
+#     (no display manager: `display-manager.service` is masked)
 #   - System stays alive post-login (no false-positive media-removal shutdown)
 set -euo pipefail
 
@@ -162,7 +164,7 @@ diagnose_direct_kernel_serial() {
 
     if [[ -s "${diag_log}" ]]; then
         local err_excerpt tail_excerpt
-        err_excerpt="$(grep -aiE 'ANITAILS_|panic|error|fail|denied|corrupt|unable|interactive|timeout|reject|missing|emergency|gdm|gnome-shell' "${diag_log}" | gh_escape || true)"
+        err_excerpt="$(grep -aiE 'ANITAILS_|panic|error|fail|denied|corrupt|unable|interactive|timeout|reject|missing|emergency' "${diag_log}" | gh_escape || true)"
         tail_excerpt="$(gh_escape < "${diag_log}")"
         [[ -n "${err_excerpt}" ]] && echo "::error title=Direct Kernel+Journald Matches::${err_excerpt}"
         echo "::error title=Direct Kernel+Journald Tail::${tail_excerpt}"
@@ -196,7 +198,9 @@ run_boot_mode() {
             -machine q35
             -drive "if=pflash,format=raw,readonly=on,file=${OVMF_CODE}"
             -drive "if=pflash,format=raw,file=${WORK_TMP}/efivars-${mode}.fd"
-            -vga std
+            # Hyprland needs a GBM-capable DRM node; `-vga std` (bochs) only
+            # offers dumb buffers, so UEFI boots virtio-gpu like BIOS does.
+            -device virtio-vga
             -drive "file=${ISO_FILE},media=cdrom,readonly=on"
             -boot d
         )
@@ -284,4 +288,4 @@ if [[ -f "${OUT_DIR}/SHA256SUMS" ]]; then
     (cd "${OUT_DIR}" && sha256sum -c SHA256SUMS)
 fi
 
-echo "PASS: Both Legacy BIOS (USB3) and UEFI (OVMF) Live OS boot tests reached GDM + amnesia GNOME session cleanly!"
+echo "PASS: Both Legacy BIOS (USB3) and UEFI (OVMF) Live OS boot tests reached the amnesia Hyprland session cleanly!"

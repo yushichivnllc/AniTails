@@ -59,22 +59,35 @@ emit_report() {
 emit_report "$(printf "ANITAILS_BOOT_HEARTBEAT stage=early kernel=%s uptime=%s" \
     "$(uname -r)" "$(awk '{print $1}' /proc/uptime 2>/dev/null || echo 0)")"
 
-DEADLINE=$((SECONDS + 165))
+# No display manager any more: getty@tty1 autologins `amnesia`, the login shell
+# execs /usr/local/bin/anitails-hyprland-session, which seeds the dotfiles and
+# runs `uwsm start hyprland-uwsm.desktop`. Readiness therefore means "amnesia
+# has a logind session and a Hyprland compositor is running in it". Hyprland
+# under QEMU falls back to Mesa llvmpipe, which is slow, hence the generous
+# deadline (kept below the CI --timeout).
+DEADLINE=$((SECONDS + 210))
 NEXT_PROGRESS=$((SECONDS + 10))
-GDM_OK="false"
+GETTY_OK="false"
+COMPOSITOR_OK="false"
 SESSION_OK="false"
 FIREWALL_OK="false"
 NETNS_OK="false"
 
 while (( SECONDS < DEADLINE )); do
-    if /usr/bin/systemctl is-active --quiet gdm.service; then
-        GDM_OK="true"
+    if /usr/bin/systemctl is-active --quiet getty@tty1.service; then
+        GETTY_OK="true"
     else
-        GDM_OK="false"
+        GETTY_OK="false"
     fi
 
-    if /usr/bin/loginctl list-sessions --no-legend 2>/dev/null | grep -qw "amnesia" \
-       || /usr/bin/pgrep -u amnesia -f "gnome-session|gnome-shell" >/dev/null 2>&1; then
+    if /usr/bin/pgrep -u amnesia -x Hyprland >/dev/null 2>&1 \
+       || /usr/bin/pgrep -u amnesia -f "uwsm start hyprland" >/dev/null 2>&1; then
+        COMPOSITOR_OK="true"
+    else
+        COMPOSITOR_OK="false"
+    fi
+
+    if /usr/bin/loginctl list-sessions --no-legend 2>/dev/null | grep -qw "amnesia"; then
         SESSION_OK="true"
     else
         SESSION_OK="false"
@@ -92,24 +105,23 @@ while (( SECONDS < DEADLINE )); do
         NETNS_OK="false"
     fi
 
-    if [[ "${GDM_OK}" == "true" && "${SESSION_OK}" == "true" && "${FIREWALL_OK}" == "true" && "${NETNS_OK}" == "true" ]]; then
-        # Hold 3 seconds to confirm no post-login service (udisks2 / media watchdog) powers off or crashes GDM
+    if [[ "${COMPOSITOR_OK}" == "true" && "${SESSION_OK}" == "true" && "${FIREWALL_OK}" == "true" && "${NETNS_OK}" == "true" ]]; then
+        # Hold 3 seconds to confirm no post-login service (udisks2 / media watchdog) powers off or crashes Hyprland
         sleep 3
-        if /usr/bin/systemctl is-active --quiet gdm.service \
-           && ( /usr/bin/loginctl list-sessions --no-legend 2>/dev/null | grep -qw "amnesia" \
-                || /usr/bin/pgrep -u amnesia -f "gnome-session|gnome-shell" >/dev/null 2>&1 ); then
+        if /usr/bin/pgrep -u amnesia -x Hyprland >/dev/null 2>&1 \
+           && /usr/bin/loginctl list-sessions --no-legend 2>/dev/null | grep -qw "amnesia"; then
             KVER="$(uname -r)"
             SYS_STATE="$(/usr/bin/systemctl is-system-running 2>/dev/null || true)"
-            emit_report "$(printf "ANITAILS_OS_BOOT_READY kernel=%s state=%s gdm=%s amnesia_session=%s firewall=%s netns=%s" \
-                "${KVER}" "${SYS_STATE}" "${GDM_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}")"
+            emit_report "$(printf "ANITAILS_OS_BOOT_READY kernel=%s state=%s desktop=hyprland compositor=%s getty=%s amnesia_session=%s firewall=%s netns=%s" \
+                "${KVER}" "${SYS_STATE}" "${COMPOSITOR_OK}" "${GETTY_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}")"
             exit 0
         fi
     fi
 
     if (( SECONDS >= NEXT_PROGRESS )); then
         SYS_STATE="$(/usr/bin/systemctl is-system-running 2>/dev/null || true)"
-        emit_report "$(printf "ANITAILS_BOOT_PROGRESS sec=%d state=%s gdm=%s amnesia_session=%s firewall=%s netns=%s" \
-            "${SECONDS}" "${SYS_STATE}" "${GDM_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}")"
+        emit_report "$(printf "ANITAILS_BOOT_PROGRESS sec=%d state=%s compositor=%s getty=%s amnesia_session=%s firewall=%s netns=%s" \
+            "${SECONDS}" "${SYS_STATE}" "${COMPOSITOR_OK}" "${GETTY_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}")"
         NEXT_PROGRESS=$((SECONDS + 10))
     fi
 
@@ -117,8 +129,8 @@ while (( SECONDS < DEADLINE )); do
 done
 
 FAIL_DUMP="$(
-    printf "ANITAILS_OS_BOOT_FAILED kernel=%s gdm=%s amnesia_session=%s firewall=%s netns=%s\n" \
-        "$(uname -r)" "${GDM_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}"
+    printf "ANITAILS_OS_BOOT_FAILED kernel=%s compositor=%s getty=%s amnesia_session=%s firewall=%s netns=%s\n" \
+        "$(uname -r)" "${COMPOSITOR_OK}" "${GETTY_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}"
     echo "=== systemctl list-jobs ==="
     /usr/bin/systemctl list-jobs --no-pager 2>&1 || true
     echo "=== systemctl --failed ==="
@@ -127,8 +139,10 @@ FAIL_DUMP="$(
     /usr/bin/loginctl list-sessions --no-pager 2>&1 || true
     echo "=== journalctl -b -p warning..emerg (last 40 lines) ==="
     /usr/bin/journalctl -b -p warning..emerg --no-pager -n 40 2>&1 || true
-    echo "=== journalctl -u gdm.service (last 35 lines) ==="
-    /usr/bin/journalctl -u gdm.service --no-pager -n 35 2>&1 || true
+    echo "=== journalctl -u getty@tty1.service (last 35 lines) ==="
+    /usr/bin/journalctl -u getty@tty1.service --no-pager -n 35 2>&1 || true
+    echo "=== journalctl _UID=1000 (last 40 lines) ==="
+    /usr/bin/journalctl -b _UID=1000 --no-pager -n 40 2>&1 || true
 )"
 emit_report "${FAIL_DUMP}"
 exit 1
