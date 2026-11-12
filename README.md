@@ -2,7 +2,7 @@
 
 > **Tuyên bố quan trọng:** **AniTails** là bản dẫn xuất độc lập được thiết kế và chuyển đổi sang nền tảng **Arch Linux (`archiso`)**, **KHÔNG PHẢI** bản phát hành chính thức của dự án Tails (`tails.net`) hay The Tor Project. Xem đầy đủ thông báo pháp lý và giấy phép `GPL-3.0-or-later` tại [`NOTICE.md`](NOTICE.md) và [`COPYING`](COPYING).
 >
-> **Trạng thái kiểm định hiện tại (`2026-11-12`):** `39/39` bộ kiểm thử bảo mật, giao diện Hyprland/HyDE & phần cứng NVIDIA tự động đạt **`PASS`**, nhưng trạng thái phát hành tổng thể là **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)** do các cổng biên dịch ISO `mkarchiso`, kiểm thử khởi động QEMU BIOS/UEFI, kiểm thử KMS trên GPU NVIDIA vật lý và ký khóa phần cứng HSM ngoài máy build đang ở trạng thái **`BLOCKED` / `SKIPPED`** trong môi trường container Debian 12 hiện tại. Xem báo cáo chi tiết tại [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) và [`docs/NVIDIA_COMPATIBILITY.md`](docs/NVIDIA_COMPATIBILITY.md).
+> **Trạng thái kiểm định hiện tại (`2026-11-12`):** `40/40` bộ kiểm thử bảo mật, giao diện Hyprland/HyDE & phần cứng NVIDIA tự động đạt **`PASS`**, nhưng trạng thái phát hành tổng thể là **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)** do các cổng biên dịch ISO `mkarchiso`, kiểm thử khởi động QEMU BIOS/UEFI, kiểm thử KMS trên GPU NVIDIA vật lý và ký khóa phần cứng HSM ngoài máy build đang ở trạng thái **`BLOCKED` / `SKIPPED`** trong môi trường container Debian 12 hiện tại. Xem báo cáo chi tiết tại [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) và [`docs/NVIDIA_COMPATIBILITY.md`](docs/NVIDIA_COMPATIBILITY.md).
 
 ---
 

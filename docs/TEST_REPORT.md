@@ -11,7 +11,7 @@
 
 > ### TRẠNG THÁI: **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)**
 >
-> - **39 / 39 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm **19/19** bài cũ: **13** bài P0 bảo mật cốt lõi + **6** bộ kiểm thử tích hợp NVIDIA đa thế hệ, và **17/17** bài mới cho giao diện Hyprland + dotfiles AniDE/HyDE), không có bất kỳ bài kiểm thử thực thi nào thất bại (`0 FAIL`).
+> - **40 / 40 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm **19/19** bài cũ: **13** bài P0 bảo mật cốt lõi + **6** bộ kiểm thử tích hợp NVIDIA đa thế hệ, và **18/18** bài mới cho giao diện Hyprland + dotfiles AniDE/HyDE), không có bất kỳ bài kiểm thử thực thi nào thất bại (`0 FAIL`).
 > - Tuy nhiên, có **7 cổng kiểm định ở trạng thái `BLOCKED` và 2 cổng ở trạng thái `SKIPPED`** do giới hạn khách quan của môi trường container (không có `CONFIG_NF_TABLES`, không có `mkarchiso`/`makepkg`/`qemu-system-x86_64`, không có khóa HSM ngoài, và **không có GPU NVIDIA vật lý `0x10de` hay PCIe passthrough** — lưu ý GPU ảo của QEMU **không** chứng minh được tương thích phần cứng NVIDIA thật).
 > - Theo đúng nguyên tắc trung thực kỹ thuật, hệ thống **chưa được phép công bố là bản phát hành sẵn sàng sử dụng thực địa** cho đến khi cả 5 cổng `P0` nêu trên được thực thi và đạt `PASS` trên máy trạm build Arch Linux chuyên dụng.
 > - Desktop mới (Hyprland + HyDE) **chưa được khởi động thực tế** trong sandbox: cổng `GATE-QEMU-BOOT-BIOS-UEFI` vẫn `BLOCKED`, nên mọi kết luận về giao diện chỉ dựa trên kiểm thử tĩnh + seeder chạy thật (xem Mục 4).
@@ -66,7 +66,7 @@ python3 tests/run_all_tests.py
 
 ---
 
-## 4. Kiểm Thử Giao Diện Hyprland + Dotfiles AniDE/HyDE (`tests/test_hyde_dotfiles.py`, 17 bài — `2026-11-12`)
+## 4. Kiểm Thử Giao Diện Hyprland + Dotfiles AniDE/HyDE (`tests/test_hyde_dotfiles.py`, 18 bài — `2026-11-12`)
 
 Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới: `scripts/sync-hyde-dotfiles.py --check` xác minh 483 tệp dotfiles trên đĩa, và `anitails-hyde-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed.
 
@@ -89,8 +89,9 @@ Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
 | **T-34** | Danh sách gói: có Hyprland/uwsm/waybar/portal-hyprland…; không có GDM/GNOME/`firefox`/`quickshell`; lock không còn `gnome-shell`/`gdm` | **`PASS`** | `packages.x86_64`, `snapshot.lock.json` |
 | **T-35** | Ảnh nền PNG hợp lệ + `anitails-hyde-doctor` + mọi đường dẫn `file_permissions` tồn tại trước `pacstrap` | **`PASS`** | PNG magic `\x89PNG`, > 10 KB |
 | **T-36** | **Hồi quy CI:** không tệp vendor nào bị `git` bỏ qua (`git check-ignore` rỗng) và 11 tệp shader Hyprland phải được track | **`PASS`** | `shaders/.gitignore` của HyDE chứa `*` — xem §4.1 |
+| **T-37** | **Cổng boot QEMU theo phiên mới:** `anitails-virtio-boot-status` không còn chờ `gdm`/`gnome-shell`, mà chờ `getty@tty1` + tiến trình `Hyprland` của `amnesia`; launcher có fallback llvmpipe cho máy ảo | **`PASS`** | Xem §4.2 |
 
-**Kết luận Mục 4:** toàn bộ 17 bài đạt `PASS`; phần **chưa chứng minh được** là khởi động đồ họa thật (QEMU/UEFI + GPU), vẫn nằm trong `GATE-QEMU-BOOT-BIOS-UEFI` (`BLOCKED`) và `GATE-NVIDIA-PHYSICAL-GPU-KMS` (`BLOCKED`).
+**Kết luận Mục 4:** toàn bộ 18 bài đạt `PASS`; phần **chưa chứng minh được** là khởi động đồ họa thật (QEMU/UEFI + GPU), vẫn nằm trong `GATE-QEMU-BOOT-BIOS-UEFI` (`BLOCKED`) và `GATE-NVIDIA-PHYSICAL-GPU-KMS` (`BLOCKED`).
 
 ### 4.1. Sự cố CI đã khắc phục (`2026-11-12`)
 
@@ -107,5 +108,27 @@ missing: Configs/.config/hypr/shaders/blue-light-filter.frag
 
 Khắc phục: `sync-hyde-dotfiles.py` bỏ qua `.gitignore`/`.gitattributes`/`*.cache.glsl` khi vendor, **và**
 chạy `git check-ignore` trên mọi tệp đã vendor (cả `--source` lẫn `--check`) để thoát mã 1 nếu git định bỏ qua
-bất kỳ tệp nào. Bài **T-36** chặn tái diễn. Bằng chứng: `git clone --depth 1` nhánh này rồi chạy
+bất kỳ tệp nào. Bài **T-36** chặn tái diễn.
+ Bằng chứng: `git clone --depth 1` nhánh này rồi chạy
 `--check` ⇒ `OK: 483 vendored dotfiles match MANIFEST.sha256` (`rc=0`).
+
+### 4.2. Cổng boot QEMU được chuyển sang Hyprland (`2026-11-12`)
+
+Workflow còn một cổng nữa phụ thuộc GNOME: `anitails-virtio-boot-status` (chạy trong khách,
+gửi trạng thái qua `ttyS0`/virtio-serial) chỉ phát `ANITAILS_OS_BOOT_READY` khi
+`gdm.service` **active** và có tiến trình `gnome-session|gnome-shell`. Sau khi bỏ GDM, cổng này
+sẽ luôn báo `ANITAILS_OS_BOOT_FAILED` dù hệ thống lên bình thường. Đã sửa:
+
+- điều kiện "sẵn sàng" = có session logind của `amnesia` **và** tiến trình `Hyprland` (hoặc
+  `uwsm start hyprland`) đang chạy, cộng `nftables` + netns `tbb`; `getty@tty1` được ghi kèm
+  như thông tin (`desktop=hyprland compositor=… getty=… amnesia_session=…`);
+- hạn chờ 165 s → 210 s (llvmpipe chậm), `--timeout` của job 240 s → 300 s;
+- chẩn đoán khi thất bại đổi từ `journalctl -u gdm` sang `journalctl -u getty@tty1` +
+  `journalctl -b _UID=1000`;
+- UEFI dùng `-device virtio-vga` (bochs `-vga std` chỉ có dumb-buffer, Hyprland cần node DRM
+  hỗ trợ GBM);
+- `anitails-hyprland-session` đặt `LIBGL_ALWAYS_SOFTWARE=1` / `WLR_DRM_NO_MODIFIERS=1` /
+  `WLR_RENDERER_ALLOW_SOFTWARE=1` khi chạy trong máy ảo không có `GBM_BACKEND`.
+
+Bài **T-37** chặn tái diễn. *Lưu ý trung thực:* sandbox này không có
+`qemu-system-x86_64`/`/dev/kvm`, nên **chưa** chạy được cổng boot; kết quả thật do CI báo.
