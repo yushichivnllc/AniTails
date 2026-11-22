@@ -1,4 +1,4 @@
-# AniTails — start the Hyprland session on the autologin TTY.
+# AniTails — start the i3-gaps session on the autologin TTY.
 #
 # getty@tty1 autologins `amnesia` (see
 # /etc/systemd/system/getty@tty1.service.d/20-anitails-autologin.conf), which
@@ -28,4 +28,4 @@ esac
 
 ANITAILS_SESSION_LAUNCHED=1
 export ANITAILS_SESSION_LAUNCHED
-exec /usr/local/bin/anitails-hyprland-session
+exec /usr/local/bin/anitails-i3-session

@@ -63,12 +63,10 @@ xdg-desktop-portal
 xdg-desktop-portal-gtk
 
 # --- Open-Source KMS / Mesa / NVK Graphics Baseline ---
-# The desktop is Hyprland (wlroots) on Wayland; there is no X11 session and no
-# display manager. Mesa/NVK/llvmpipe are still what drives every GPU tier.
+# The desktop is i3-gaps (Xorg); there is no Wayland session and no display
+# manager. Mesa/NVK/llvmpipe is what drives every GPU tier.
 mesa
 libglvnd
-xorg-xwayland
-qt6-wayland
 vulkan-icd-loader
 vulkan-nouveau
 vulkan-intel
@@ -76,36 +74,29 @@ vulkan-radeon
 switcheroo-control
 vulkan-swrast
 
-# --- Wayland Compositor: Hyprland + AniDE/HyDE dotfiles ---
-# See docs/HYDE_INTEGRATION.md for the component-by-component mapping and for
-# the AUR-only HyDE pieces that AniTails deliberately does not ship.
-hyprland
-uwsm
-hyprlock
-hypridle
-hyprsunset
-hyprpaper
-hyprpicker
-hyprpolkitagent
-lua
-luarocks
-libgirepository
+# --- Xorg + i3-gaps session (no Wayland, no greeter) ---
+# See docs/I3WM_INTEGRATION.md for the component-by-component mapping and for
+# the AUR-only pieces AniTails deliberately does not ship.
+xorg-server
+xorg-xinit
+xorg-xauth
+xorg-xrdb
+xorg-xsetroot
+xorg-xrandr
+xorg-xcursor
+i3-gaps
 polkit
 
 # --- Desktop Shell: bar, launcher, notifications, clipboard, screenshots ---
 waybar
-rofi-wayland
+wofi
 dunst
 libnotify
 cliphist
-wl-clip-persist
-wl-clipboard
-grim
-slurp
-satty
-xwaylandvideobridge
+scrot
+feh
 
-# --- Terminals, Files, Editors & Media (Wayland-native) ---
+# --- Terminals, Files, Editors & Media (X11/Qt native) ---
 kitty
 dolphin
 ark
@@ -135,14 +126,11 @@ gtk3
 gtk4
 
 # --- Session Integration / Portals / Theming ---
-xdg-desktop-portal-hyprland
-qt5-wayland
 qt5ct
 qt6ct
 kvantum
 kvantum-qt5
 nwg-look
-nwg-displays
 adwaita-icon-theme
 bibata-cursor-theme
 xsettingsd

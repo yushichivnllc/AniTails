@@ -48,7 +48,7 @@ class TestSupplyChainAndArchiso(unittest.TestCase):
         active_sudoers = "\n".join(ln for ln in sudoers.splitlines() if not ln.lstrip().startswith("#"))
         self.assertNotIn("NOPASSWD", active_sudoers)
         # No display manager: getty autologins the unprivileged live user and the
-        # login shell is replaced by the Hyprland session launcher.
+        # login shell is replaced by the i3-gaps session launcher.
         autologin = (
             REPO_ROOT
             / "archiso/airootfs/etc/systemd/system/getty@tty1.service.d/20-anitails-autologin.conf"
@@ -59,7 +59,7 @@ class TestSupplyChainAndArchiso(unittest.TestCase):
         profile_hook = (REPO_ROOT / "archiso/airootfs/etc/profile.d/99-anitails-session.sh").read_text(
             encoding="utf-8"
         )
-        self.assertIn("anitails-hyprland-session", profile_hook)
+        self.assertIn("anitails-i3-session", profile_hook)
         self.assertIn("XDG_VTNR", profile_hook)
 
         # GNOME is gone: no greeter, no dconf database, no GNOME packages.
@@ -70,9 +70,13 @@ class TestSupplyChainAndArchiso(unittest.TestCase):
         for gone in ("gdm", "gnome-shell", "gnome-session", "nautilus", "dconf",
                      "xdg-desktop-portal-gnome", "gnome-control-center", "gnome-console"):
             self.assertNotIn(gone, package_names)
-        for present in ("hyprland", "uwsm", "hypridle", "hyprlock", "waybar",
-                        "xdg-desktop-portal-hyprland", "hyprpolkitagent"):
+        for present in ("i3-gaps", "xorg-server", "xorg-xinit", "waybar",
+                        "dunst", "wofi", "scrot", "xorg-xauth"):
             self.assertIn(present, package_names)
+        for gone in ("hyprland", "uwsm", "hyprlock", "hypridle", "hyprpaper",
+                     "hyprsunset", "hyprpicker", "hyprpolkitagent",
+                     "xdg-desktop-portal-hyprland", "xorg-xwayland"):
+            self.assertNotIn(gone, package_names)
         # The GDM UID must no longer be allowed to reach the Tor ControlPort.
         nft = (REPO_ROOT / "archiso/airootfs/etc/nftables.conf").read_text(encoding="utf-8")
         self.assertNotIn("GDM_UID", nft)

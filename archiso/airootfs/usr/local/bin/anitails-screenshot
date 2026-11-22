@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# AniTails — screenshot with an explicit clipboard-capture warning.
+#
+# Screenshots are optional (the ISO is amnesic): the script warns the user and
+# requires a deliberate confirm before capturing, then writes a file and offers
+# to copy it to the clipboard.
+set -uo pipefail
+
+out_dir="${XDG_PICTURES_DIR:-$HOME/Pictures}"
+mkdir -p "$out_dir"
+out="${out_dir}/anitails-$(date +%Y%m%d-%H%M%S).png"
+
+confirm=0
+if command -v zenity >/dev/null 2>&1; then
+    if ! zenity --question --title="AniTails — Screenshot" \
+        --text="A screenshot will capture every window on the screen. It is saved into your Pictures directory and may leave a trace in clipboard history.\n\nAre you sure you want to continue?" \
+        --ok-label="Capture" --cancel-label="Cancel" 2>/dev/null; then
+        exit 0
+    fi
+elif command -v scrot >/dev/null 2>&1; then
+    notify-send -u low -a "AniTails" "Screenshot" \
+        "Proceeding without a confirmation dialog: a full screen capture will be saved to ~/Pictures." 2>/dev/null || true
+    command -v scrot >/dev/null 2>&1 && sleep 1
+fi
+
+if ! command -v scrot >/dev/null 2>&1; then
+    notify-send -u critical -a "AniTails" "Screenshot failed" "scrot is not available on this ISO." 2>/dev/null || true
+    printf 'anitails-screenshot: scrot not available\n' >&2
+    exit 1
+fi
+
+if ! scrot "$out" >/dev/null 2>&1; then
+    notify-send -u critical -a "AniTails" "Screenshot failed" "scrot could not capture the screen." 2>/dev/null || true
+    printf 'anitails-screenshot: capture failed\n' >&2
+    exit 1
+fi
+
+notify-send -u low -a "AniTails" "Screenshot saved" "$out" 2>/dev/null || true
+printf 'anitails-screenshot: %s\n' "$out"
+exit 0

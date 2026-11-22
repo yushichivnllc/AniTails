@@ -1,0 +1,11 @@
+# AniTails wofi launcher — Midnight Aurora
+allow_images=true
+hide_scroll=true
+layer=top
+insensitive=true
+insensitive_group=true
+keep_sorter=true
+sort_order=default
+num_normal_window_lines=8
+width=560
+parse_type=text/text

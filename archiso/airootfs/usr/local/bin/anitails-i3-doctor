@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# AniTails — report which i3-gaps components are available on this ISO.
+#
+# Anything intentionally absent is listed as "not shipped": unaudited AUR
+# builds and opaque prebuilt binaries are never bundled.
+set -uo pipefail
+
+ok=0
+missing=0
+
+row() {
+    local state="$1" name="$2" note="${3:-}"
+    if [[ $state == ok ]]; then
+        printf '  \033[32m[ok]\033[0m   %-22s %s\n' "$name" "$note"
+        ok=$((ok + 1))
+    else
+        printf '  \033[33m[--]\033[0m   %-22s %s\n' "$name" "$note"
+        missing=$((missing + 1))
+    fi
+}
+
+has() {
+    if command -v "$1" >/dev/null 2>&1; then row ok "$1" "$2"; else row no "$1" "$2"; fi
+}
+
+printf '\nAniTails desktop — i3-gaps + Waybar (Xorg)\n'
+printf '============================================\n'
+
+printf '\nSession & compositor\n'
+has startx "Xorg session manager (xorg-xinit)"
+has Xorg "Xorg server (xorg-server)"
+has i3-gaps "tiling window manager (i3-gaps fork)"
+has i3 "i3-gaps compatibility shim"
+
+printf '\nDesktop shell\n'
+has waybar "status bar (AniTails config)"
+has dunst "notifications"
+has wofi "launcher / menus"
+has kitty "terminal"
+has dolphin "file manager (Qt)"
+has scrot "screenshots (scrot)"
+has cliphist "clipboard history"
+has feh "pinned wallpaper"
+
+printf '\nAniTails security tooling\n'
+has anitails-tor-browser "Tor Browser launcher"
+has anitails-tor-connect "Tor connection assistant"
+has anitails-persistence "LUKS2 persistent storage"
+has anitails-verify-truststore "CA trust store auditor"
+
+printf '\nDotfile seed status\n'
+if [[ -f $HOME/.local/state/anitails/i3-seed.json ]]; then
+    python3 - "$HOME/.local/state/anitails/i3-seed.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+print(f"  seeded {data.get('created')} file(s) at {data.get('seeded_at')}")
+PY
+else
+    printf '  seed state missing — run: /usr/local/lib/anitails-i3-seed --check\n'
+fi
+
+printf '\n%d component(s) present, %d intentionally absent.\n\n' "$ok" "$missing"

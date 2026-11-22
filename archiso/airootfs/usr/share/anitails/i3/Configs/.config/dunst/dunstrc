@@ -1,0 +1,36 @@
+# AniTails dunst notification daemon — Midnight Aurora
+[global]
+    font = JetBrainsMono Nerd Font 12
+    frame_color = #38bdf8
+    corner_radius = 14
+    gap_size = 10
+    markup = full
+    transparency = 12
+    notification_height = 74
+    separator_height = 2
+    padding = 16
+    horizontal_padding = 18
+    vertical_padding = 14
+    format = "<b>%s</b>\n%b"
+    icon_position = left
+    indicate_hidden = yes
+    shrink = yes
+    offset = 18x18
+    sort = yes
+    stack_duplicates = true
+    idle_threshold = 0
+
+[urgency_low]
+    background = "#141827"
+    foreground = "#c3c9e0"
+    frame_color = "#2a3150"
+
+[urgency_normal]
+    background = "#141827"
+    foreground = "#eef1f8"
+    frame_color = "#38bdf8"
+
+[urgency_critical]
+    background = "#1d1a2e"
+    foreground = "#ffe4ea"
+    frame_color = "#fb7185"

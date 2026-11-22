@@ -27,32 +27,30 @@ Bộ kiểm thử tự động trong `tests/` có thể chạy ngay trên bất 
 python3 tests/run_all_tests.py
 ```
 
-- Toàn bộ 19 bài kiểm thử thực thi (13 bài P0 bảo mật nền tảng: eMudhra + Sectigo `AAA` cross-sign, tường lửa `nftables` + cách ly luồng Tor + cảm biến rò rỉ, giả mạo MAC fail-closed, `onion-grater`, LUKS2 Argon2id, C11 `anitails-udev-watchdog`, chống giả mạo SBOM/ISO; cùng 6 bộ kiểm thử NVIDIA: nhận diện 1,558 PCI+subsystem ID qua 14 thế hệ, điều phối driver không xung đột, từ chối module chưa ký/lệch ABI/thiếu GSP, Optimus/eGPU IOMMU gate, kiểm tra Compute Capability `SM` của CUDA, ẩn GPU UUID/Serial & cách ly Tor Browser `bwrap`) phải đạt **`OK (19/19)`**.
+- Toàn bộ 19 bài kiểm thử thực thi (13 bài P0 bảo mật nền tảng: eMudhra + Sectigo `AAA` cross-sign, tường lửa `nftables` + cách ly luồng Tor + cảm biến rò rỉ, giả mạo MAC fail-closed, `onion-grater`, LUKS2 Argon2id, C11 `anitails-udev-watchdog`, chống giả mạo SBOM/ISO; cùng 6 bộ kiểm thử NVIDIA: nhận diện 1,558 PCI+subsystem ID qua 14 thế hệ, điều phối driver không xung đột, từ chối module chưa ký/lệch ABI/thiếu GSP, Optimus/eGPU IOMMU gate, kiểm tra Compute Capability `SM` của CUDA, ẩn GPU UUID/Serial & cách ly Tor Browser `bwrap`) phải đạt **`OK (37/37)`**.
 
 ---
 
-## 2b. Bước 1b: Xác Minh Dotfiles Giao Diện AniDE/HyDE (Bắt Buộc)
+## 2b. Bước 1b: Xác Minh Stack i3-gaps (Bắt Buộc)
 
-Giao diện Hyprland được cấu hình bằng cây dotfiles vendor tại
-`archiso/airootfs/usr/share/anitails/hyde/`. Trước khi build, xác minh manifest
-SHA-256 (bước này cũng tự chạy trong `scripts/build-iso.sh`, trong chroot bởi
-`anitails-alpm-finalize`, và ở mỗi lần đăng nhập bởi `anitails-hyde-seed`):
-
-```bash
-python3 scripts/sync-hyde-dotfiles.py --check
-# OK: 483 vendored dotfiles match MANIFEST.sha256
-```
-
-Nếu cần cập nhật lên commit AniDE mới:
+Giao diện i3-gaps được cấu hình bằng cây dotfiles tự viết tại
+`archiso/airootfs/usr/share/anitails/i3/` (không vendor bên thứ ba). Trước khi build,
+xác minh manifest SHA-256 (bước này cũng tự chạy trong `scripts/build-iso.sh`, trong
+chroot bởi `anitails-alpm-finalize`, và ở mỗi lần đăng nhập bởi `anitails-i3-seed`):
 
 ```bash
-git clone --depth 1 https://github.com/hyprdes/AniDE /tmp/AniDE
-python3 scripts/sync-hyde-dotfiles.py --source /tmp/AniDE   # vendor + regenerate manifest
-python3 -m unittest tests.test_hyde_dotfiles -v             # 16 test
+python3 scripts/sync-i3-dotfiles.py --check
+# OK: 9 vendored dotfiles match MANIFEST.sha256
 ```
 
-Xem [`HYDE_INTEGRATION.md`](HYDE_INTEGRATION.md) để biết danh sách tệp bị loại trừ
-(`dconf`, `hydectl`, `hyde-ipc`, …) và lý do.
+Nếu cần chỉnh sửa stack i3-gaps (thêm/bỏ tệp trong `Configs/`):
+
+```bash
+python3 scripts/sync-i3-dotfiles.py            # regenerate manifest + UPSTREAM.json
+python3 -m unittest tests.test_i3_dotfiles -v  # 15 test
+```
+
+Xem [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md) để biết danh sách tệp và trade-off.
 
 ---
 

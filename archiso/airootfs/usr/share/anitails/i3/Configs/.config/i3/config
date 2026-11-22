@@ -1,0 +1,107 @@
+# ============================================================================
+# AniTails i3-gaps configuration — Midnight Aurora (beautified, minimal, secure)
+#
+# Policy invariants (never relax):
+#   * Tor Browser is the only browser — every keybinding that opens a
+#     destination is pinned to anitails-tor-browser.
+#   * No screen lock, no suspend, no greeter, no display manager.
+#   * The live user `amnesia` has a locked password; nothing here may prompt
+#     for one (see docs/I3WM_INTEGRATION.md).
+# ============================================================================
+
+set $mod Mod4
+set $browser /usr/local/bin/anitails-tor-browser
+set $terminal /usr/bin/kitty
+set $explorer /usr/bin/dolphin
+set $launcher /usr/bin/wofi --allow-images
+set $screenshot /usr/local/bin/anitails-screenshot
+set $lockscr /usr/local/lib/anitails-i3-desktop/lockscreen-disabled.sh
+
+# --- Geometry -------------------------------------------------------------------
+default_border pixel 2
+hide_edge_borders vertical
+smart_gaps on
+gaps inner 6
+gaps outer 6
+smart_borders on
+
+# --- Midnight Aurora palette (see docs/I3WM_INTEGRATION.md) ----------------------
+client.focused    #38bdf8 #0e1220 #eef1f8 #38bdf8 #0a0d16
+client.unfocused  #2a3150 #0d1019 #7c84a0 #1d2338 #2a3150
+client.urgent     #fb7185 #161019 #ffe4ea #fb7185 #fb7185
+client.placeholder #1d2338 #161a2c #8b93ad #1d2338 #1d2338
+
+# --- Fonts --------------------------------------------------------------------
+font pango:Cantarell 10
+
+# --- Workspaces ----------------------------------------------------------------
+workspace_layouts stacking splitv
+workspace_auto_back_and_forth yes
+
+# --- Bar: hidden (Waybar is started separately by the session wrapper) ----------
+bar {
+    mode hide
+}
+
+# --- Cursor theme + status bar + notifications ---------------------------------
+exec_always --no-startup-id xrdb -merge -quiet "$HOME/.Xresources" >/dev/null 2>&1 || true
+exec_always --no-startup-id /usr/local/lib/anitails-i3-bar.sh
+exec_always --no-startup-id dunst
+
+# --- Applications -----------------------------------------------------------------
+bindsym $mod+Return exec $terminal
+bindsym $mod+Shift+Return exec $explorer
+bindsym $mod+space exec $launcher --show drun
+bindsym $mod+B exec $browser
+bindsym $mod+Shift+4 exec $screenshot
+bindsym $mod+S exec /usr/local/bin/anitails-settings
+bindsym $mod+L exec $lockscr
+
+# --- Workspaces: 1..9 ------------------------------------------------------------
+bindsym $mod+1 workspace number 1
+bindsym $mod+2 workspace number 2
+bindsym $mod+3 workspace number 3
+bindsym $mod+4 workspace number 4
+bindsym $mod+5 workspace number 5
+bindsym $mod+6 workspace number 6
+bindsym $mod+7 workspace number 7
+bindsym $mod+8 workspace number 8
+bindsym $mod+9 workspace number 9
+bindsym $mod+Shift+1 move container to workspace number 1
+bindsym $mod+Shift+2 move container to workspace number 2
+bindsym $mod+Shift+3 move container to workspace number 3
+bindsym $mod+Shift+4 move container to workspace number 4
+bindsym $mod+Shift+5 move container to workspace number 5
+bindsym $mod+Shift+6 move container to workspace number 6
+bindsym $mod+Shift+7 move container to workspace number 7
+bindsym $mod+Shift+8 move container to workspace number 8
+bindsym $mod+Shift+9 move container to workspace number 9
+
+# --- Focus / move / kill -----------------------------------------------------------
+bindsym $mod+h focus left
+bindsym $mod+l focus right
+bindsym $mod+j focus down
+bindsym $mod+k focus up
+bindsym $mod+Shift+Left move container to workspace to the left
+bindsym $mod+Shift+Right move container to workspace to the right
+bindsym $mod+d kill focused window
+
+# --- Layouts / fullscreen / float ----------------------------------------------------
+bindsym $mod+t layout toggle splitv stacking tabbed
+bindsym $mod+Shift+f fullscreen toggle
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+r mode "resize"
+
+# --- Session ------------------------------------------------------------------------
+bindsym $mod+Shift+c reload
+bindsym $mod+Shift+e exit i3
+
+# --- Resize mode --------------------------------------------------------------------
+mode "resize" {
+    bindsym h resize shrink width 10 px
+    bindsym l resize grow width 10 px
+    bindsym j resize grow height 10 px
+    bindsym k resize shrink height 10 px
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+}

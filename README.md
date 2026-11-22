@@ -2,7 +2,7 @@
 
 > **Tuyên bố quan trọng:** **AniTails** là bản dẫn xuất độc lập được thiết kế và chuyển đổi sang nền tảng **Arch Linux (`archiso`)**, **KHÔNG PHẢI** bản phát hành chính thức của dự án Tails (`tails.net`) hay The Tor Project. Xem đầy đủ thông báo pháp lý và giấy phép `GPL-3.0-or-later` tại [`NOTICE.md`](NOTICE.md) và [`COPYING`](COPYING).
 >
-> **Trạng thái kiểm định hiện tại (`2026-11-12`):** `39/39` bộ kiểm thử bảo mật, giao diện Hyprland/HyDE & phần cứng NVIDIA tự động đạt **`PASS`**, nhưng trạng thái phát hành tổng thể là **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)** do các cổng biên dịch ISO `mkarchiso`, kiểm thử khởi động QEMU BIOS/UEFI, kiểm thử KMS trên GPU NVIDIA vật lý và ký khóa phần cứng HSM ngoài máy build đang ở trạng thái **`BLOCKED` / `SKIPPED`** trong môi trường container Debian 12 hiện tại. Xem báo cáo chi tiết tại [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) và [`docs/NVIDIA_COMPATIBILITY.md`](docs/NVIDIA_COMPATIBILITY.md).
+> **Trạng thái kiểm định hiện tại (`2026-11-22`):** **Boot → desktop i3-gaps (Xorg)** đã được thay thế hoàn toàn: giao diện Hyprland + dotfiles AniDE/HyDE (~123.000 dòng vendor) đã bị loại bỏ và thay bằng **stack i3-gaps do AniTails viết toàn bộ** (`archiso/airootfs/usr/share/anitails/i3/`, 9 tệp cấu hình, ghim SHA-256 `MANIFEST.sha256`), banner tường lửa **Waybar custom/posture** (Tor ●/○, fw, LUKS, RAM-wipe, release verdict) và launcher cài đặt SUPER+S., kèm seeder `anitails-i3-seed` fail-closed, launcher `anitails-i3-session` và doctor `anitails-i3-doctor`. Bộ kiểm thử **40/40 PASS**: 22 bài bảo mật/NVIDIA + 18 bài i3-gaps (`test_i3_dotfiles.py`, thay thế `test_hyde_dotfiles.py` 17 bài). STEP 2 đã thêm: `anitails-posture` (mô-đun Waybar `custom/posture`) và `anitails-settings` (SUPER+S)., nhưng trạng thái phát hành tổng thể vẫn là **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)** do các cổng biên dịch ISO `mkarchiso`, kiểm thử khởi động QEMU BIOS/UEFI, kiểm thử KMS trên GPU NVIDIA vật lý và ký khóa HSM ngoài máy build đang ở trạng thái **`BLOCKED` / `SKIPPED`** trong container Debian 12. Xem [`docs/I3WM_INTEGRATION.md`](docs/I3WM_INTEGRATION.md) và báo cáo chi tiết tại [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md).
 
 ---
 
@@ -21,11 +21,11 @@
    - Khóa cứng `swapon`, tắt coredump/hibernate, không tự động gắn ổ cứng nội bộ SATA/NVMe (`UDISKS_IGNORE=1`), xóa RAM khi tắt máy hoặc ngay khi rút nóng USB khởi động (`anitails-udev-watchdog` viết lại bằng C11 chuẩn xác, đã sửa lỗi UB của bản gốc).
    - Hỗ trợ module nén `.ko.zst` của Arch Linux trong cơ chế khóa/giả mạo địa chỉ MAC fail-closed.
    - Lưu trữ bền vững tùy chọn (`anitails-persistence`) mã hóa bằng **LUKS2 (`aes-xts-plain64` 512-bit + `argon2id`)** với cơ chế chống symlink traversal.
-4. **Giao diện Hyprland + dotfiles AniDE/HyDE (không còn GNOME, không còn display manager):**
+4. **Giao diện i3-gaps trên Xorg (không còn GNOME, không còn Wayland, không còn display manager):**
    - Loại bỏ hoàn toàn **GDM, GNOME Shell, dconf, Nautilus, Loupe, Papers, GNOME Console, `xdg-desktop-portal-gnome`** cùng người dùng `gdm` (`UID 120`) và luật `GDM_UID` trong `nftables`.
-   - Desktop Wayland dựng từ **Hyprland** + **dotfiles [AniDE](https://github.com/hyprdes/AniDE) `v26.8.1`** (fork của HyDE, `GPL-3.0-only`), vendor tĩnh tại `/usr/share/anitails/hyde/`, ghim commit + **SHA-256 từng tệp** (483 tệp) và được seed offline vào `$HOME` bởi `anitails-hyde-seed` (fail-closed nếu manifest sai lệch).
-   - Không có greeter: `getty@tty1` tự đăng nhập `amnesia` → `uwsm start hyprland-uwsm.desktop`. Thanh trạng thái dự phòng **Waybar** (Quickshell là gói AUR nên không đóng gói), thông báo `dunst`, clipboard `cliphist`, ảnh nền tĩnh `hyprpaper`.
-   - Trình duyệt duy nhất là **Tor Browser** (`SUPER + B`); **khóa màn hình bị tắt** (tài khoản live không có mật khẩu, giống Tails) và **suspend bị cấm**; xem [`docs/HYDE_INTEGRATION.md`](docs/HYDE_INTEGRATION.md).
+   - Desktop **i3-gaps trên Xorg** do AniTails viết toàn bộ (`GPL-3.0-or-later`): **10 tệp cấu hình** (`.config/i3/config`, `waybar/`, `dunst/`, `wofi/`, `kitty/`, `gtk-3.0/settings.ini`, `.Xresources`) tại `/usr/share/anitails/i3/`, ghim **SHA-256 từng tệp** (`MANIFEST.sha256`) và được seed offline vào `$HOME` bởi `anitails-i3-seed` (fail-closed nếu manifest sai lệch).
+   - Không có greeter: `getty@tty1` tự đăng nhập `amnesia` → `startx` → `i3-gaps` (X11 native). Thanh trạng thái **Waybar** (Midnight Aurora — glassy, bo góc 14px, accent gradient cyan→violet), thông báo `dunst`, launcher `wofi`, clipboard `cliphist`, screenshot `scrot` (kèm hộp thoại cảnh báo), ảnh nền `feh` trỏ `anitails-default.png`.
+   - Trình duyệt duy nhất là **Tor Browser** (`SUPER + B`); **khóa màn hình bị tắt** (tài khoản live không có mật khẩu, giống Tails) và **suspend bị cấm**; xem [`docs/I3WM_INTEGRATION.md`](docs/I3WM_INTEGRATION.md).
 
 ---
 
@@ -33,12 +33,11 @@
 
 | Đường dẫn | Vai trò |
 |---|---|
-| `archiso/` | Cấu hình profile `mkarchiso` mặc định nguồn mở (`base`: BIOS `syslinux` + UEFI `systemd-boot`, snapshot `2026/11/08`, `nouveau` + Mesa `NVK` + `simpledrm`, toàn bộ lớp phủ bảo mật `airootfs/`, dotfiles HyDE đã vendor tại `airootfs/usr/share/anitails/hyde/`). |
-| `archiso/hyde-overrides/` | 7 tệp cấu hình do AniTails viết đè lên dotfiles AniDE/HyDE (Tor Browser, tắt khóa màn hình, bar Waybar, `hypridle` không lock/suspend, biến môi trường `uwsm`). |
+| `archiso/` | Cấu hình profile `mkarchiso` mặc định nguồn mở (`base`: BIOS `syslinux` + UEFI `systemd-boot`, snapshot `2026/11/08`, `nouveau` + Mesa `NVK` + `simpledrm`, toàn bộ lớp phủ bảo mật `airootfs/`, stack i3-gaps tự viết tại `airootfs/usr/share/anitails/i3/`). |
 | `archiso-profiles/` | Định nghĩa 4 profile build tách biệt không xung đột: `base`, `nvidia-modern` (Turing→Blackwell `nvidia-open-anitails`), `nvidia-legacy-580xx` (Maxwell/Pascal/Volta `580.196.07`), `nvidia-cuda-optional` (Opt-in `SM >= 7.5`). |
 | `pkgbuilds/` | 7 gói `PKGBUILD` nội bộ ghim mã băm SHA-256: `linux-anitails` (`+headers`), `tor-anitails`, `tor-browser-anitails`, `lyrebird-anitails`, `anitails-udev-watchdog`, `nvidia-open-anitails`, `nvidia-580xx-anitails`. |
 | `scripts/` | Công cụ dựng ảnh ISO (`build-iso.sh`), sinh & xác minh SBOM CycloneDX + `SHA256SUMS` + `B2SUMS` (`generate-sbom-and-checksums.py`), ký phát hành bằng khóa HSM ngoài (`sign-release.sh`) và xác minh nâng cấp USB (`verify-and-upgrade-usb.py`). |
-| `tests/` | Bộ kiểm thử bảo mật tự động thực thi trực tiếp (OpenSSL CA chain & cross-sign, `unshare -Urn` firewall + leak sensor anti-test, MAC spoofing fail-closed, `onion-grater`, LUKS2 persistence, biên dịch & chạy C11 `anitails-udev-watchdog`, chống giả mạo SBOM/ISO, xác minh dotfiles HyDE & seed offline). |
+| `tests/` | Bộ kiểm thử bảo mật tự động thực thi trực tiếp (OpenSSL CA chain & cross-sign, `unshare -Urn` firewall + leak sensor anti-test, MAC spoofing fail-closed, `onion-grater`, LUKS2 persistence, biên dịch & chạy C11 `anitails-udev-watchdog`, chống giả mạo SBOM/ISO, xác minh stack i3-gaps & seed offline). |
 | `docs/` | Bộ tài liệu kỹ thuật đầy đủ bằng tiếng Việt (xem danh mục bên dưới). |
 
 *(Các thư mục kế thừa của Tails gốc như `config/`, `features/`, `auto/` được giữ nguyên để phục vụ đối chiếu kiểm toán trực tiếp).*
@@ -63,4 +62,4 @@ python3 tests/run_all_tests.py
 6. [`docs/UPGRADE_AND_RELEASE_POLICY.md`](docs/UPGRADE_AND_RELEASE_POLICY.md) — Chính sách đóng băng snapshot Arch Linux Archive, nâng cấp ảnh đầy đủ có xác thực chữ ký và quản lý khóa phát hành ngoài máy build.
 7. [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md) — Báo cáo bằng chứng kiểm thử thực nghiệm (`PASS` / `BLOCKED` / `SKIPPED`) và kết luận điều kiện phát hành.
 8. [`docs/NVIDIA_COMPATIBILITY.md`](docs/NVIDIA_COMPATIBILITY.md) — Ma trận tương thích phần cứng NVIDIA (`1,558` mã PCI ID qua 14 thế hệ), kiến trúc 4 profile không xung đột, khảo sát `ARM64` Jetson/Grace và phân tích rủi ro VRAM/GSP.
-9. [`docs/HYDE_INTEGRATION.md`](docs/HYDE_INTEGRATION.md) — Loại bỏ GNOME (GDM/dconf) và tích hợp Hyprland + dotfiles AniDE/HyDE: vendor & ghim SHA-256, seeder offline fail-closed, luồng phiên `getty` → `uwsm` → Hyprland, các thành phần AUR bị loại bỏ và quyết định bảo mật.
+9. [`docs/I3WM_INTEGRATION.md`](docs/I3WM_INTEGRATION.md) — Tích hợp i3-gaps trên Xorg (thay hoàn toàn Hyprland/AniDE): vendor tự viết & ghim SHA-256, seeder offline fail-closed, luồng phiên `getty` → `startx` → `i3-gaps`, trade-off bảo mật X11 vs Wayland và quyết định loại bỏ toàn bộ GNOME/Wayland.

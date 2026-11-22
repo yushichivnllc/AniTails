@@ -61,11 +61,11 @@ check_pacman_security() {
 
 check_pacman_security
 
-# The Hyprland desktop is configured by the vendored AniDE/HyDE dotfiles. Their
-# SHA-256 manifest is enforced again inside the chroot
-# (anitails-alpm-finalize) and at session start (anitails-hyde-seed).
-if ! python3 "${REPO_ROOT}/scripts/sync-hyde-dotfiles.py" --check; then
-    echo "CRITICAL SECURITY VIOLATION: vendored AniDE/HyDE dotfiles do not match MANIFEST.sha256!" >&2
+# The i3 desktop is configured by AniTails' own i3-gaps stack. Its SHA-256
+# manifest is enforced again inside the chroot
+# (anitails-alpm-finalize) and at session start (anitails-i3-seed).
+if ! python3 "${REPO_ROOT}/scripts/sync-i3-dotfiles.py" --check; then
+    echo "CRITICAL SECURITY VIOLATION: i3 desktop design does not match MANIFEST.sha256!" >&2
     exit 1
 fi
 
