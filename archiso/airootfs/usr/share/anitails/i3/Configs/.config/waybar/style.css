@@ -1,0 +1,74 @@
+/* AniTails i3-gaps Waybar theme — Midnight Aurora */
+
+* {
+  border-radius: 0;
+  border: none;
+  font-family: "JetBrainsMono Nerd Font", "Cantarell", sans-serif;
+  font-size: 12px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: rgba(13, 15, 25, 0.88);
+  color: #eef1f8;
+  border: 1px solid #2a3150;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+#workspaces { padding: 0 6px; }
+#workspaces button {
+  padding: 0 10px;
+  margin: 5px 2px;
+  color: #8b93ad;
+  background: transparent;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+#workspaces button.active {
+  background: linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%);
+  color: #0a0d16;
+}
+#workspaces button:hover { background: #1d2338; color: #eef1f8; }
+
+#window {
+  color: #c3c9e0;
+  padding: 0 10px;
+  background: transparent;
+}
+
+#clock {
+  color: #eef1f8;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+#pulseaudio, #network, #battery, #tray {
+  padding: 0 8px;
+  color: #eef1f8;
+}
+
+#custom-posture {
+  padding: 0 10px;
+  color: #c9c1ff;
+  font-weight: 600;
+  background: rgba(167, 139, 250, 0.14);
+  border-radius: 8px;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+}
+#custom-posture:hover { background: rgba(167, 139, 250, 0.24); }
+
+#pulseaudio.muted { color: #fb7185; }
+#battery.warning  { color: #fbbf24; }
+#battery.critical { color: #fb7185; }
+#network.disconnected { color: #fb7185; }
+
+#tray menu {
+  background: #141827;
+  border: 1px solid #2a3150;
+  border-radius: 10px;
+  padding: 6px;
+}
+#tray menuitem { padding: 8px 14px; border-radius: 8px; color: #eef1f8; }
+#tray menuitem:hover { background: #1d2338; }

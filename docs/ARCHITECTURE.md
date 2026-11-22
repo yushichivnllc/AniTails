@@ -33,12 +33,12 @@ Sau khi `multi-user.target` hoàn tất, phiên đồ họa được dựng **kh
 ```text
 getty@tty1 (+ 20-anitails-autologin.conf: --autologin amnesia)
    └── login shell → /etc/profile.d/99-anitails-session.sh
-        └── anitails-hyprland-session
-             ├── anitails-hyde-seed (xác minh SHA-256 của dotfiles AniDE/HyDE rồi mới seed $HOME)
-             └── uwsm start hyprland-uwsm.desktop → Hyprland + HyDE
+        └── anitails-i3-session
+             ├── anitails-i3-seed (xác minh SHA-256 của stack i3-gaps rồi mới seed $HOME)
+             └── startx /etc/X11/xinit/anitails-i3.sh → i3-gaps (Xorg)
 ```
 
-Xem chi tiết tại [`HYDE_INTEGRATION.md`](HYDE_INTEGRATION.md).
+Xem chi tiết tại [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md).
 
 ---
 
@@ -87,7 +87,7 @@ Xem chi tiết tại [`HYDE_INTEGRATION.md`](HYDE_INTEGRATION.md).
 
 ---
 
-## 3. Phiên Đồ Họa Hyprland + Dotfiles AniDE/HyDE (Thay Thế GNOME)
+## 3. Phiên Đồ Họa i3-gaps trên Xorg (Thay Thế GNOME)
 
 AniTails **không còn GNOME**: GDM, GNOME Shell, `dconf`, Nautilus, Loupe, Papers, GNOME Console, GNOME Control Center và `xdg-desktop-portal-gnome` đều bị loại khỏi `archiso/packages.x86_64`, người dùng `gdm` (`UID/GID 120`) bị xóa khỏi `passwd/group/shadow/gshadow`, và luật `GDM_UID` trong `nftables` bị gỡ (chỉ `amnesia` và `tor` được chạm ControlPort `4101`).
 
@@ -95,23 +95,22 @@ AniTails **không còn GNOME**: GDM, GNOME Shell, `dconf`, Nautilus, Loupe, Pape
 
 | Lớp | Thành phần |
 |---|---|
-| Compositor | `hyprland` (wlroots/Wayland) + `aquamarine`, `hyprutils`, `hyprlang`, `hyprgraphics`, `hyprcursor` |
-| Quản lý phiên | `uwsm` — đưa Hyprland vào phiên `systemd --user`, import `/run/environment.d/50-anitails-gpu.conf` do `anitails-gpu-select` sinh ra |
-| Dotfiles | AniDE/HyDE `v26.8.1` (GPL-3.0-only), vendor tại `/usr/share/anitails/hyde/`, ghim commit + SHA-256 từng tệp, seed offline bằng `anitails-hyde-seed` |
-| Thanh trạng thái | `waybar` (dự phòng; bar mặc định của HyDE là Quickshell — gói AUR, không đóng gói) |
-| Launcher / thông báo | `rofi-wayland`, `dunst` |
-| Khóa / idle | `hyprlock` (đã cài nhưng **tắt**), `hypridle` (dim + DPMS, không lock, không suspend) |
-| Ảnh nền | `hyprpaper` + `/usr/share/anitails/wallpapers/anitails-default.png` |
-| Xác thực | `hyprpolkitagent` thay cho polkit agent của GNOME Shell |
-| Portal | `xdg-desktop-portal-hyprland` + `xdg-desktop-portal-gtk` |
-| Ứng dụng | `kitty`, `dolphin`, `kate`, `imv`, `zathura`, `celluloid`, `mpv`, `qalculate-qt` |
+| Compositor | `i3-gaps` (Xorg/X11) |
+| Quản lý phiên | `startx` (`xinit`) → wrapper `/etc/X11/xinit/anitails-i3.sh` (xsetroot + feh + i3) |
+| Dotfiles | Do AniTails viết toàn bộ (`GPL-3.0-or-later`), vendor tại `/usr/share/anitails/i3/`, ghim commit + SHA-256 từng tệp, seed offline bằng `anitails-i3-seed` |
+| Thanh trạng thái | `waybar` (Midnight Aurora, glassy + rounded) — điều khiển bởi `anitails-i3-bar.sh` |
+| Launcher / thông báo | `wofi` (drun), `dunst` |
+| Khóa / idle | Không khóa: `amnesia` không có mật khẩu, `lockscreen-disabled.sh` ghi chú |
+| Ảnh nền / screenshot | `feh --bg-fill` + `anitails-screenshot` (`scrot` + hộp thoại cảnh báo) |
+| Portal | `xdg-desktop-portal-gtk` |
+| Ứng dụng | `kitty`, `dolphin`, `kate`, `imv`, `zathura`, `celluloid`, `mpv`, `qalculate-qt`, `scrot`, `feh`, `cliphist` |
 
 **Bất biến bảo mật của lớp giao diện:**
 
 1. Không có tiến trình đồ họa nào chạy dưới quyền root (không greeter, không display manager).
-2. Không có trình duyệt clearnet: `SUPER + B`, `[desktop.app] browser` và `BROWSER` đều trỏ `anitails-tor-browser`; `firefox` bị kiểm thử chặn.
-3. Không khóa màn hình và không suspend: `amnesia` có mật khẩu bị khóa nên `hyprlock` sẽ tạo màn hình không thể mở, còn suspend giữ bí mật trong RAM (đã bị vô hiệu toàn hệ thống).
-4. Dotfiles chỉ được seed sau khi `MANIFEST.sha256` khớp; build cũng chạy `sha256sum -c` trong chroot (`anitails-alpm-finalize`).
-5. Không mang blob dựng sẵn: `hydectl`/`hyde-ipc` bị loại, kiểm thử quét magic `\x7fELF` trong cây vendor.
+2. Không có trình duyệt clearnet: `SUPER + B` và `$browser` đều trỏ `anitails-tor-browser`; `firefox` bị kiểm thử chặn.
+3. Không khóa màn hình và không suspend: `amnesia` có mật khẩu bị khóa nên không có phím khóa màn hình hoạt động; suspend bị vô hiệu toàn hệ thống.
+4. Dotfiles chỉ được seed sau khi `MANIFEST.sha256` khớp; build cũng chạy `scripts/sync-i3-dotfiles.py --check` trong chroot (`anitails-alpm-finalize`).
+5. Không mang blob dựng sẵn: không ELF thư viện bên ngoài nào được vendor; kiểm thử quét magic `\x7fELF` trong cây vendor.
 
-Chi tiết đầy đủ (luồng phiên, chính sách lỗi, danh sách AUR bị loại, gỡ lỗi): [`HYDE_INTEGRATION.md`](HYDE_INTEGRATION.md).
+Chi tiết đầy đủ (luồng phiên, chính sách lỗi, trade-off, gỡ lỗi): [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md).

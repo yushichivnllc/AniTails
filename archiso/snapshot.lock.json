@@ -254,114 +254,87 @@
     }
   },
   "desktop_stack_packages": {
-    "hyprland": {
+    "i3-gaps": {
       "repo": "extra",
-      "minimum_version": "0.56.1-1",
-      "note": "HyDE v26.8.1 configures Hyprland through its Lua API (hyprland.lua); older releases ignore it"
+      "minimum_version": "0.30.0-1",
+      "note": "Tiling window manager (official Arch package; i3-gaps fork with extra gaps/borders)"
     },
-    "uwsm": {
+    "xorg-server": {
       "repo": "extra",
-      "minimum_version": "0.21.0-1",
-      "note": "Wayland session manager; HyDE's env.d/uwsm fragments require >= 0.21"
+      "minimum_version": "1.20.18-1",
+      "note": "Xorg server; AniTails ships no display manager and runs i3-gaps directly on it"
     },
-    "hyprlock": {
+    "xorg-xinit": {
       "repo": "extra",
-      "minimum_version": "0.9.0-1"
+      "minimum_version": "1.20.18-1",
+      "note": "startx / xinit — used by the session launcher to start i3-gaps"
     },
-    "hypridle": {
+    "xorg-xrdb": {
       "repo": "extra",
-      "minimum_version": "0.2.0-1"
+      "minimum_version": "1.2-1",
+      "note": "xrdb — applies Xft/Xcursor resources (.Xresources) at session start"
     },
-    "hyprpaper": {
+    "xorg-xauth": {
       "repo": "extra",
-      "minimum_version": "0.8.0-1",
-      "note": "Only official wallpaper backend AniTails ships (HyDE's default awww is AUR-only)"
+      "minimum_version": "1.0.12-1",
+      "note": "xauth — required by xinit"
     },
-    "hyprsunset": {
+    "xorg-xsetroot": {
       "repo": "extra",
-      "minimum_version": "0.1.0-1"
+      "minimum_version": "1.2-1",
+      "note": "xsetroot — pinned solid desktop background (#0a0d16)"
     },
-    "hyprpicker": {
+    "xorg-xrandr": {
       "repo": "extra",
-      "minimum_version": "0.4.0-1"
+      "minimum_version": "1.5.0-1",
+      "note": "xrandr — monitor layout on the display server"
     },
-    "hyprpolkitagent": {
+    "xorg-xcursor": {
       "repo": "extra",
-      "minimum_version": "0.1.0-1",
-      "note": "Replaces gnome-shell's polkit agent"
-    },
-    "xdg-desktop-portal-hyprland": {
-      "repo": "extra",
-      "minimum_version": "1.3.0-1"
-    },
-    "xdg-desktop-portal-gtk": {
-      "repo": "extra",
-      "minimum_version": "1.15.0-1"
-    },
-    "lua": {
-      "repo": "extra",
-      "minimum_version": "5.5.0-1",
-      "note": "HyDE's Hyprland configuration is Lua (package.loaded paths use lua/5.5)"
-    },
-    "luarocks": {
-      "repo": "extra",
-      "minimum_version": "3.11.0-1"
-    },
-    "libgirepository": {
-      "repo": "extra",
-      "minimum_version": "1.86.0-1"
+      "minimum_version": "1.1.14-1",
+      "note": "X cursor theme support (Bibata-Modern-Ice)"
     },
     "waybar": {
       "repo": "extra",
       "minimum_version": "0.12.0-1",
-      "note": "Fallback bar while Quickshell (AUR-only) is not shipped"
-    },
-    "rofi-wayland": {
-      "repo": "extra",
-      "minimum_version": "1.7.5-1"
+      "note": "Status bar for i3-gaps (AniTails config; no Quickshell)"
     },
     "dunst": {
       "repo": "extra",
       "minimum_version": "1.12.0-1"
     },
-    "hyprland-protocols": {
+    "wofi": {
       "repo": "extra",
-      "minimum_version": "0.6.0-1"
+      "minimum_version": "1.10.0-1",
+      "note": "Launcher / menus (official Arch; GTK3/4)"
     },
-    "aquamarine": {
+    "feh": {
       "repo": "extra",
-      "minimum_version": "0.9.0-1"
+      "minimum_version": "4.12-2",
+      "note": "Wallpaper backend for AniTails (X11)"
     },
-    "hyprutils": {
+    "scrot": {
       "repo": "extra",
-      "minimum_version": "0.7.0-1"
-    },
-    "hyprlang": {
-      "repo": "extra",
-      "minimum_version": "0.6.0-1"
-    },
-    "hyprgraphics": {
-      "repo": "extra",
-      "minimum_version": "0.1.0-1"
-    },
-    "hyprcursor": {
-      "repo": "extra",
-      "minimum_version": "0.1.0-1"
+      "minimum_version": "1.4.16-1",
+      "note": "Screenshots for the i3-gaps session (X11-native)"
     }
   },
   "desktop_dotfiles": {
-    "project": "AniDE (HyDE fork)",
-    "repository": "https://github.com/hyprdes/AniDE",
-    "license": "GPL-3.0-only",
-    "commit": "6d441fcb076954a7c64d19296454a4c14a4c61e1",
-    "version": "v26.8.1",
-    "vendored_path": "archiso/airootfs/usr/share/anitails/hyde",
-    "manifest": "archiso/airootfs/usr/share/anitails/hyde/MANIFEST.sha256",
-    "sync_tool": "scripts/sync-hyde-dotfiles.py",
+    "project": "AniTails i3-gaps desktop stack",
+    "repository": "anitails:local",
+    "license": "GPL-3.0-or-later",
+    "commit": "see UPSTREAM.json",
+    "version": "1.0.0",
+    "vendored_path": "archiso/airootfs/usr/share/anitails/i3",
+    "manifest": "archiso/airootfs/usr/share/anitails/i3/MANIFEST.sha256",
+    "sync_tool": "scripts/sync-i3-dotfiles.py",
     "excluded_binaries": [
       "hydectl",
-      "hyde-ipc"
+      "hyde-ipc",
+      "quickshell",
+      "hyprquery",
+      "wlogout"
     ],
-    "excluded_reason": "Prebuilt third-party ELF blobs; AniTails ships no opaque binaries. Quickshell/hyprquery/wlogout are AUR-only and are not packaged either."
+    "excluded_reason": "AniTails desktop is self-written; no upstream vendoring at all. HyDE/AniDE vendored files, prebuilt ELFs and AUR-only pieces are deliberately absent (see docs/I3WM_INTEGRATION.md)."
   }
 }

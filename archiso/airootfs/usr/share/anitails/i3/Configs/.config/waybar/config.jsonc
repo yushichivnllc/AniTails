@@ -1,0 +1,74 @@
+// AniTails i3-gaps status bar — Midnight Aurora (top, floating, rounded)
+{
+  "layer": "top",
+  "position": "top",
+  "height": 36,
+  "spacing": 8,
+  "margin-top": 6,
+  "margin-left": 10,
+  "margin-right": 10,
+  "modules-left": ["i3/workspaces", "i3/window"],
+  "modules-center": ["clock"],
+  "modules-right": ["pulseaudio", "network", "battery", "custom/posture", "tray"],
+
+  "i3/workspaces": {
+    "format": "{icon}",
+    "on-click": "activate",
+    "persistent_workspaces": {
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9
+    }
+  },
+
+  "i3/window": {
+    "max-length": 60
+  },
+
+  "clock": {
+    "format": "{:%H:%M  %a %d %b}",
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "tooltip-calendar-row-width": 3,
+    "tooltip-calendar-weeks-pos": "right"
+  },
+
+  "pulseaudio": {
+    "format": "{icon} {volume}%",
+    "format-muted": " {volume}%",
+    "on-click": "pavucontrol",
+    "scroll-step": 2
+  },
+
+  "network": {
+    "format-wifi": " {essid}",
+    "format-ethernet": " {ifname}",
+    "format-disconnected": " off-line"
+  },
+
+  "battery": {
+    "format": "{icon} {capacity}%",
+    "format-charging": " {capacity}%",
+    "states": {
+      "warning": 20,
+      "critical": 10
+    }
+  },
+
+  "custom/posture": {
+    "exec": "/usr/local/bin/anitails-posture --inline",
+    "return-type": "json",
+    "interval": 30,
+    "on-click": "/usr/local/bin/anitails-settings"
+  },
+
+  "tray": {
+    "icon-size": 16,
+    "spacing": 8
+  }
+}

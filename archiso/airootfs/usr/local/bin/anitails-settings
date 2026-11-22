@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# AniTails — settings / security posture launcher.
+#
+# Opens a terminal-native settings session (kitty with its dark, rounded
+# chrome) that prints the security posture report. Kept dependency-light on
+# purpose: AniTails is not a bloated GNOME/KDE dashboard.
+set -uo pipefail
+
+export PATH="/usr/local/bin:${PATH}"
+
+title="AniTails — Settings"
+report="/usr/local/bin/anitails-posture"
+
+if command -v kitty >/dev/null 2>&1; then
+    exec kitty --title "$title" --layout stacked \
+        /bin/bash -l -c "${report}; printf '\nPress Enter to close…'; read -r _"
+fi
+
+# Fallback: no kitty — print the report on the current console.
+exec "$report"

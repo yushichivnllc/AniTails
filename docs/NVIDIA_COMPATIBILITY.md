@@ -11,7 +11,7 @@
 1. **`Đã kiểm thử`**: Chỉ áp dụng cho thành phần phần mềm đã chạy kiểm thử tự động thực tế trong kho mã này (`anitails-gpu-detect`, `anitails-gpu-select`, `anitails-cuda-check`, `verify-nvidia-lockstep.py` trên sysfs/rootfs mô phỏng). **Không áp dụng cho GPU vật lý khi chưa cắm card thật.**
 2. **`Dự kiến hỗ trợ`**: PCI ID và subsystem ID có mặt chính thức trong bảng hỗ trợ của nhánh driver + firmware + kernel `linux-anitails 7.3.3-1` (`conftest.sh` xác nhận hỗ trợ `Linux 7.3`), cấu hình KMS/Wayland đã hoàn thiện, chờ xác thực trên phần cứng vật lý.
 3. **`Chưa kiểm thử`**: Kiến trúc rất mới/đặc thù (ví dụ `Vera Rubin GR100` vừa thêm trong nhánh `620.70.06` ngày `2026-11-05`, tổ hợp laptop MUX đặc thù hoặc eGPU Thunderbolt 4/USB4).
-4. **`Chỉ hiển thị cơ bản`**: Khởi động lên phiên Hyprland Wayland qua `simpledrm` (UEFI GOP / BIOS VESA) + dựng hình phần mềm `Mesa llvmpipe` (`LIBGL_ALWAYS_SOFTWARE=1`), không có tăng tốc 3D/Vulkan phần cứng.
+4. **`Chỉ hiển thị cơ bản`**: Khởi động lên phiên i3-gaps trên Xorg qua `simpledrm` (UEFI GOP / BIOS VESA) + dựng hình phần mềm `Mesa llvmpipe` (`LIBGL_ALWAYS_SOFTWARE=1`), không có tăng tốc 3D/Vulkan phần cứng.
 5. **`Không hỗ trợ`**: Không thể xuất hình trực tiếp (ví dụ card Data Center `PCI class 0x0302` không có display engine trên máy không có iGPU/BMC VGA), nhánh driver proprietary EOL không vá bảo mật (`470xx`/`390xx`/`340xx` đòi tắt `IBT`), hoặc kiến trúc ngoài `x86_64` (Jetson/Tegra/Grace `aarch64` đối với ảnh ISO `x86_64`).
 
 ---
@@ -94,9 +94,10 @@ Do đó, AniTails thiết kế **4 Profile build độc lập** (`./scripts/buil
   - Nếu **IOMMU DMA remapping (`Intel VT-d` / `AMD-Vi`) đang bật**: cho phép mở eGPU cho phiên hiện tại.
   - Nếu **IOMMU tắt trong BIOS**: **từ chối mở `thunderbolt`** và ghi rõ cảnh báo bảo mật thay vì đánh đổi an toàn DMA.
 
-### 5.3. Chính Sách Wayland Mặc Định & Xorg Fallback Có Kiểm Soát
-- **Hyprland trên Wayland** (`hyprland` + `uwsm`, không có display manager/GDM kể từ bản chuyển sang dotfiles AniDE/HyDE, kết hợp `nvidia_drm.modeset=1 fbdev=1`) là phiên hiển thị **duy nhất mặc định** trên AniTails vì Wayland cô lập luồng bàn phím/chuột/clipboard giữa các cửa sổ ứng dụng và không có greeter chạy dưới quyền root. Xem [`HYDE_INTEGRATION.md`](HYDE_INTEGRATION.md).
-- **Rủi ro của Xorg (X11):** Kiến trúc X11 cho phép một ứng dụng X11 bất kỳ đọc phím gõ (`XQueryKeymap`/`XInput2`) hoặc chụp màn hình của cửa sổ khác nếu không có lớp sandbox bổ sung. Do đó, Xorg **không được bật mặc định** và chỉ được xem là lựa chọn khẩn cấp có chấp thuận rủi ro (`anitails.xorg_fallback=1`) khi gặp phần cứng đặc thù không thể chạy Wayland lẫn `Safe Graphics Fallback` (`simpledrm` + `llvmpipe`).
+### 5.3. Chính Sách Xorg Mặc Định (Thay Thế Wayland)
+- **i3-gaps trên Xorg/X11** là phiên hiển thị **duy nhất** trên AniTails kể từ bản chuyển sang stack i3-gaps (`xorg-server` + `i3-gaps` + `waybar` + `wofi` + `dunst` + `kitty`, không có display manager/GDM). Xem [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md).
+- **Rủi ro của X11 (Xorg):** Kiến trúc X11 cho phép một ứng dụng bất kỳ đọc phím gõ (`XQueryKeymap`/`XInput2`) hoặc chụp màn hình của cửa sổ khác. AniTails **chấp nhận rủi ro này** theo quyết định chủ repo để giảm kích thước ISO và đơn giản hóa luồng phiên (không Wayland/uwsm/display manager); mọi màn hình đều chạy trong danh sách ứng dụng được duyệt.
+- **Safe Graphics Fallback** (`simpledrm` + `llvmpipe`, `LIBGL_ALWAYS_SOFTWARE=1`) vẫn hoạt động trên Xorg: phiên i3-gaps hiển thị ở chế độ "chỉ hiển thị cơ bản" cho phần cứng rủi ro.
 
 ---
 

@@ -1,7 +1,8 @@
 # Báo Cáo Kiểm Thử Bảo Mật & Xác Minh Thực Nghiệm (`TEST_REPORT.md`)
 
-- **Ngày thực thi kiểm thử:** `2026-11-12` (UTC) — chạy lại toàn bộ sau khi chuyển desktop sang Hyprland + dotfiles AniDE/HyDE
-- **Nhánh làm việc:** `arena/d96eb5c0-anitails` (bỏ GNOME/GDM, tích hợp Hyprland + dotfiles AniDE/HyDE trên nền commit `d42349a8974bccd1ff302b29335f7f608515d978` nhánh `devel`)
+- **Ngày thực thi kiểm thử:** `2026-11-22` (UTC) — bổ sung phần i3-gaps (`tests/test_i3_dotfiles.py`)
+- **Nhánh làm việc:** `arena/e0b66055-anitails`, nâng cấp từ bản gốc `arena/d96eb5c0-anitails`
+- **Lịch sử:** chính sách desktop hiện tại đã bị thay thế tại `2026-11-22` — xem Mục 5 bên dưới. Mục 1–4 ghi lại báo cáo trước đó; mọi khúc "Hyprland/HyDE" trong đó chỉ có giá trị lịch sử.
 - **Môi trường thực thi thực tế:** Container sandbox Debian GNU/Linux 12 (`bookworm`), nhân Linux `6.1.158+ x86_64`, Python `3.11`, OpenSSL `3.0.x`, GCC C11, `/sys/bus/pci/devices` rỗng (`0` thiết bị PCI/GPU vật lý), `unshare` (hỗ trợ user/network namespace + `veth` + `iptables`/`ip6tables`), `nft` (`libnftables` parser hoạt động, nhưng nhân host không bật `CONFIG_NF_TABLES`).
 - **Tệp kết quả máy đọc tự động sinh ra:** `tests/results/latest_results.json` (sinh bởi lệnh `python3 tests/run_all_tests.py`).
 
@@ -11,10 +12,10 @@
 
 > ### TRẠNG THÁI: **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)**
 >
-> - **39 / 39 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm **19/19** bài cũ: **13** bài P0 bảo mật cốt lõi + **6** bộ kiểm thử tích hợp NVIDIA đa thế hệ, và **17/17** bài mới cho giao diện Hyprland + dotfiles AniDE/HyDE), không có bất kỳ bài kiểm thử thực thi nào thất bại (`0 FAIL`).
+> - **37 / 37 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm 22 bài cũ: 13 bài P0 bảo mật cốt lõi + 6 bài NVIDIA đa thế hệ + 3 bộ kiểm thử kiểm soát gói/profile, và 15 bài i3-gaps thay thế 17 bài Hyprland cũ). Không có bài kiểm thử thực thi nào thất bại (`0 FAIL`).
 > - Tuy nhiên, có **7 cổng kiểm định ở trạng thái `BLOCKED` và 2 cổng ở trạng thái `SKIPPED`** do giới hạn khách quan của môi trường container (không có `CONFIG_NF_TABLES`, không có `mkarchiso`/`makepkg`/`qemu-system-x86_64`, không có khóa HSM ngoài, và **không có GPU NVIDIA vật lý `0x10de` hay PCIe passthrough** — lưu ý GPU ảo của QEMU **không** chứng minh được tương thích phần cứng NVIDIA thật).
 > - Theo đúng nguyên tắc trung thực kỹ thuật, hệ thống **chưa được phép công bố là bản phát hành sẵn sàng sử dụng thực địa** cho đến khi cả 5 cổng `P0` nêu trên được thực thi và đạt `PASS` trên máy trạm build Arch Linux chuyên dụng.
-> - Desktop mới (Hyprland + HyDE) **chưa được khởi động thực tế** trong sandbox: cổng `GATE-QEMU-BOOT-BIOS-UEFI` vẫn `BLOCKED`, nên mọi kết luận về giao diện chỉ dựa trên kiểm thử tĩnh + seeder chạy thật (xem Mục 4).
+> - Desktop mới (i3-gaps/Xorg) **chưa được khởi động thực tế** trong sandbox: cổng `GATE-QEMU-BOOT-BIOS-UEFI` vẫn `BLOCKED`, nên mọi kết luận về giao diện chỉ dựa trên kiểm thử tĩnh + seeder chạy thật (xem Mục 4).
 
 ---
 
@@ -109,3 +110,49 @@ Khắc phục: `sync-hyde-dotfiles.py` bỏ qua `.gitignore`/`.gitattributes`/`*
 chạy `git check-ignore` trên mọi tệp đã vendor (cả `--source` lẫn `--check`) để thoát mã 1 nếu git định bỏ qua
 bất kỳ tệp nào. Bài **T-36** chặn tái diễn. Bằng chứng: `git clone --depth 1` nhánh này rồi chạy
 `--check` ⇒ `OK: 483 vendored dotfiles match MANIFEST.sha256` (`rc=0`).
+
+
+---
+
+## 5. Kiểm Thử Chuyển Sang i3-gaps trên Xorg (`tests/test_i3_dotfiles.py`, 15 bài — `2026-11-22`)
+
+Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
+`scripts/sync-i3-dotfiles.py --check` xác minh 9 tệp dotfiles trên đĩa, và `anitails-i3-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed/fail-closed.
+
+| Mã | Nội dung | Trạng thái | Bằng chứng |
+|---|---|---|---|
+| **I-01** | Manifest dotfiles tự viết khớp `MANIFEST.sha256` (9 tệp) | **`PASS`** | `OK: 9 vendored dotfiles match MANIFEST.sha256` |
+| **I-02** | Provenance: `anitails:local` / `GPL-3.0-or-later`, không chứa HyDE/AniDE | **`PASS`** | `UPSTREAM.json` project/license |
+| **I-03** | Không có blob ELF trong cây vendor | **`PASS`** | Quét magic `\x7fELF`: 0 khớp |
+| **I-04** | Không có dconf/GNOME/dconf-paths trong cây vendor | **`PASS`** | Quét theo đường dẫn |
+| **I-05** | Không có tệp `hyde`/`hypr`/`uwsm` trong cây vendor | **`PASS`** | Quét tên đường dẫn |
+| **I-06** | Session launcher `anitails-i3-session`: tồn tại, +x, chứa `anitails-i3-seed`, `startx`, `XDG_CURRENT_DESKTOP=i3-gaps`, không chứa `uwsm`/`hyprland` | **`PASS`** | Kiểm tra tĩnh |
+| **I-07** | X11 wrapper `/etc/X11/xinit/anitails-i3.sh`: tồn tại, +x, `exec /usr/bin/i3`, không chứa hypr/uwsm | **`PASS`** | Kiểm tra tĩnh |
+| **I-08** | Profile hook trỏ tới `anitails-i3-session` | **`PASS`** | `99-anitails-session.sh` |
+| **I-09** | Doctor script báo cáo i3, không chứa hypr | **`PASS`** | Kiểm tra tĩnh |
+| **I-10** | i3 config chứa `anitails-tor-browser`, `$mod+L`, không chứa thư viện clearnet | **`PASS`** | `.config/i3/config` |
+| **I-11** | Package list: có `i3-gaps`/`xorg-server`/`xorg-xinit`/`waybar`/`dunst`/`wofi`/`scrot`/`feh`/`cliphist`; không có `hyprland`/`uwsm`/`hyprlock`/`xorg-xwayland`… | **`PASS`** | `packages.x86_64` |
+| **I-12** | Seeder seed cây đầy đủ vào `$HOME` tạm | **`PASS`** | `.config/i3/config`, `waybar/config.jsonc`, `.Xresources`, `i3-seed.json` |
+| **I-13** | Seeder `--check` không ghi tệp nào | **`PASS`** | `.config/i3/config` không tồn tại |
+| **I-14** | Seeder từ chối cây bị giả mạo (đã `--quiet` + sha sai) | **`PASS`** | Exit ≠ 0, không ghi tệp |
+| **I-15** | Seeder idempotent: chạy lần 2 vẫn đạt | **`PASS`** | 15/15 trong `tests.test_i3_dotfiles` |
+
+**Kết luận Mục 5:** cả 15 bài đạt `PASS`; phần **chưa chứng minh được** là khởi động đồ họa thật (QEMU/UEFI + GPU), vẫn nằm trong `GATE-QEMU-BOOT-BIOS-UEFI` (`BLOCKED`) và `GATE-NVIDIA-PHYSICAL-GPU-KMS` (`BLOCKED`).
+
+### 5.1. Hồi quy CI
+
+`tests/test_i3_dotfiles.py` chạy `sync-i3-dotfiles.py --check` như là bước xác minh đầu tiên của `tests/run_all_tests.py`, nên CI sạch sẽ không gặp hiện tượng "tệp vendor tồn tại trong work tree nhưng bị `.gitignore` bỏ qua" (vấn đề đã xảy ra với 12 shader AniDE cũ — không còn trong cây i3-gaps vì toàn bộ là file-only do AniTails viết).
+
+
+---
+
+## 6. STEP 2 — UX/UI Polish & Wallpaper (`tests/test_i3_dotfiles.py`, 18 bài — `2026-11-22`)
+
+| Mã | Nội dung | Trạng thái |
+|---|---|---|
+| **U-01** | `anitails-posture` + `anitails-settings` tồn tại, executable, không sudo/password/write patterns | **`PASS`** |
+| **U-02** | Waybar config chứa `custom/posture` module (exec `--inline` + on-click settings) | **`PASS`** |
+| **U-03** | i3 config binds `$mod+S` → `anitails-settings` (không đè screenshot/browser bindings) | **`PASS`** |
+| **W-01** | Wallpaper `anitails-default.png` hợp lệ (magic `\x89PNG`, 1376×768, Midnight Aurora) | **`PASS`** |
+
+Đây là UX bổ sung chứ không thay đổi lớp bảo mật NFT/LUKS/netns; mọi bất biến fail-closed giữ nguyên.

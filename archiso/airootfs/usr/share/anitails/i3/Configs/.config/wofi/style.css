@@ -1,0 +1,38 @@
+/* AniTails wofi theme — Midnight Aurora */
+
+window {
+    background-color: rgba(13, 15, 25, 0.96);
+    color: #eef1f8;
+    border: 1px solid #2a3150;
+    border-radius: 16px;
+    font-family: "JetBrainsMono Nerd Font", "Cantarell", sans-serif;
+    font-size: 13px;
+    padding: 16px;
+}
+
+#input {
+    font-size: 15px;
+    padding: 14px 18px;
+    border: 1px solid #2a3150;
+    border-radius: 10px;
+    background-color: #141827;
+    color: #eef1f8;
+    margin-bottom: 12px;
+}
+
+#entry {
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin: 4px 0;
+    background-color: rgba(20, 24, 39, 0.4);
+}
+
+#entry:selected {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(167, 139, 250, 0.28));
+    border: 1px solid #38bdf8;
+}
+
+#entry image {
+    min-width: 48px;
+    margin-right: 12px;
+}

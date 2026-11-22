@@ -74,9 +74,9 @@ def generate_manifests(repo_root: Path, target: Path, out_dir: Path) -> int:
                 ],
             }
         )
-    # Desktop stack: pinned by *minimum* version because the Hyprland/HyDE
+    # Desktop stack: pinned by *minimum* version because the i3-gaps/Xorg
     # components are not security-ABI constraints, but they must be present and
-    # new enough for the vendored Lua dotfiles (see docs/HYDE_INTEGRATION.md).
+    # new enough for the self-written design tree (see docs/I3WM_INTEGRATION.md).
     for pkg, meta in sorted(lock_data.get("desktop_stack_packages", {}).items()):
         components.append(
             {
@@ -95,13 +95,13 @@ def generate_manifests(repo_root: Path, target: Path, out_dir: Path) -> int:
         components.append(
             {
                 "type": "data",
-                "name": "AniDE-HyDE-dotfiles",
+                "name": "AniTails-i3-design-tree",
                 "version": dotfiles["version"],
-                "purl": f"pkg:github/hyprdes/AniDE@{dotfiles['commit']}",
+                "purl": f"pkg:github/yushichivnllc/AniTails@{dotfiles['commit']}#i3-design-tree",
                 "hashes": [],
                 "externalReferences": [{"type": "vcs", "url": dotfiles["repository"]}],
                 "properties": [
-                    {"name": "anitails:license", "value": dotfiles.get("license", "GPL-3.0-only")},
+                    {"name": "anitails:license", "value": dotfiles.get("license", "GPL-3.0-or-later")},
                     {"name": "anitails:vendored_path", "value": dotfiles["vendored_path"]},
                     {"name": "anitails:manifest", "value": dotfiles["manifest"]},
                 ],

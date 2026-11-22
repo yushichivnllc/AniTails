@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# AniTails — security posture report.
+#
+# Prints a compact, honest summary of the live amnesic desktop:
+# Tor connection, firewall, persistence, RAM wipe and the release verdict.
+# Designed to be readable both in a terminal (kitty) and in the waybar status
+# bar (--inline). Every check is a best-effort probe, never a failure.
+set -uo pipefail
+
+MODE="human"
+for arg in "$@"; do
+    case "$arg" in
+        --json)   MODE="json" ;;
+        --inline) MODE="inline" ;;
+    esac
+done
+
+# --- Probes ------------------------------------------------------------------
+
+probe_tor() {
+    # AniTails exposes the proxy on 127.0.0.1:9050 (tbb netns). Accept 9150 too.
+    for port in 9050 9150; do
+        if (exec 3<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null; then
+            exec 3>&- 3<&-
+            echo "connected"
+            return
+        fi
+    done
+    echo "disconnected"
+}
+
+probe_firewall() {
+    if command -v nft >/dev/null 2>&1 \
+        && nft list table inet anitails_filter >/dev/null 2>&1; then
+        echo "enforced"
+    else
+        # Fall back to userland nft in the netns; no false positives otherwise.
+        echo "unknown"
+    fi
+}
+
+probe_persistence() {
+    if mount 2>/dev/null | grep -E '(anitails-persistence|/run/media/amnesia/persistent)' >/dev/null 2>&1; then
+        echo "unlocked"
+    else
+        echo "locked"
+    fi
+}
+
+probe_ramwipe() {
+    if systemctl is-active anitails-shutdown-on-media-removal.service >/dev/null 2>&1; then
+        echo "armed"
+    else
+        echo "unknown"
+    fi
+}
+
+TOR="$(probe_tor)"
+FW="$(probe_firewall)"
+PERSIST="$(probe_persistence)"
+WIPE="$(probe_ramwipe)"
+RELEASE="NOT READY FOR PRODUCTION RELEASE (env gates)"
+
+# --- Output ------------------------------------------------------------------
+
+if [[ $MODE == "inline" ]]; then
+    # waybar custom module: print a JSON object the waybar format reads.
+    text="Tor ●"
+    tooltip="Tor: ${TOR}"
+    if [[ $TOR != "connected" ]]; then
+        text="Tor ○"
+        tooltip="Tor: not connected — run anitails-tor-connect"
+    fi
+    printf '{"text": "%s", "tooltip": "%s\\nFirewall: %s\\nPersistence: %s\\nRAM wipe: %s\\n%s"}\n' \
+        "$text" "$tooltip" "$FW" "$PERSIST" "$WIPE" "$RELEASE"
+    exit 0
+fi
+
+if [[ $MODE == "json" ]]; then
+    python3 - "$TOR" "$FW" "$PERSIST" "$WIPE" "$RELEASE" <<'PY'
+import json, sys
+tor, fw, persist, wipe, release = sys.argv[1:]
+print(json.dumps({
+    "tor": tor,
+    "firewall": fw,
+    "persistence": persist,
+    "ram_wipe": wipe,
+    "release": release,
+}, ensure_ascii=False))
+PY
+    exit 0
+fi
+
+printf '\nAniTails security posture\n'
+printf '==============================\n'
+printf '  Tor network      %-16s (uid tor / anitails_filter)\n' "$TOR"
+printf '  Firewall         %-16s (default DROP)\n' "$FW"
+printf '  Persistence      %-16s (LUKS2 argon2id)\n' "$PERSIST"
+printf '  RAM wipe         %-16s (shutdown + boot-USB removal)\n' "$WIPE"
+printf '  Release state    %s\n' "$RELEASE"
+printf '==============================\n'
+printf '  Boot:   getty@tty1 → i3-gaps (Xorg) → waybar\n'
+printf '  Tor:    SUPER+B (Tor Browser only) · MAC spoof · RAM wipe\n'
+printf '  Tools:  SUPER+S settings · SUPER+Shift+4 screenshot · SUPER+L lock (disabled)\n'
+printf '==============================\n'
+exit 0
