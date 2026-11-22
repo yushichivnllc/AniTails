@@ -209,19 +209,19 @@
       ]
     },
     "tor-browser-anitails": {
-      "version": "16.0-1",
-      "reason": "Official Tor Browser 16.0 (Firefox 153.6.0esr) matching Tails 7.16 and fixing CVE-2026-113470",
-      "upstream_url": "https://dist.torproject.org/torbrowser/16.0/tor-browser-linux-x86_64-16.0.tar.xz",
-      "sha256": "de3370b67389c2848738cdd515bb2e3b232a4ae93290eae74185c4c43a291a24",
+      "version": "16.0.1-1",
+      "reason": "Official Tor Browser 16.0.1 (Firefox 153.7.0esr) matching Tails 7.16 and fixing CVE-2026-113470",
+      "upstream_url": "https://dist.torproject.org/torbrowser/16.0.1/tor-browser-linux-x86_64-16.0.1.tar.xz",
+      "sha256": "5b36ad610c20c81faa72caf27d1cd3a11f14a327c320b4cec581400016ba78b0",
       "validpgpkeys": [
         "EF6E286DDA85EA2A4BA7DE684E2C6E8793298290"
       ]
     },
     "lyrebird-anitails": {
-      "version": "16.0-1",
-      "reason": "lyrebird/obfs4proxy absent from official Arch repos; extracted from PGP-verified Tor Expert Bundle 16.0",
-      "upstream_url": "https://dist.torproject.org/torbrowser/16.0/tor-expert-bundle-linux-x86_64-16.0.tar.gz",
-      "sha256": "cc950ebe9acb80188325c3a2cd8817def7dd7237d6fdcd861bb87b234a0cb2fd",
+      "version": "16.0.1-1",
+      "reason": "lyrebird/obfs4proxy absent from official Arch repos; extracted from PGP-verified Tor Expert Bundle 16.0.1",
+      "upstream_url": "https://dist.torproject.org/torbrowser/16.0.1/tor-expert-bundle-linux-x86_64-16.0.1.tar.gz",
+      "sha256": "7039cb16060ab22e669852e55774d894b55f25ea8bd0ab7194d3478429a58725",
       "validpgpkeys": [
         "EF6E286DDA85EA2A4BA7DE684E2C6E8793298290"
       ]

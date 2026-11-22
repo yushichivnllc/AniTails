@@ -64,7 +64,7 @@ def probe_blocked_gates() -> list[dict[str, str]]:
             "id": "GATE-PKGBUILD-BUILD",
             "severity": "P0",
             "status": "BLOCKED",
-            "command": "pkgctl build (pkgbuilds/linux-anitails 7.3.3, tor-anitails 0.4.9.16, tor-browser-anitails 16.0, lyrebird-anitails 16.0)",
+            "command": "pkgctl build (pkgbuilds/linux-anitails 7.3.3, tor-anitails 0.4.9.16, tor-browser-anitails 16.0.1, lyrebird-anitails 16.0.1)",
             "detail": "Sandbox OS is Debian 12 without pacman/makepkg/devtools and restricted outbound mirror access.",
         })
 

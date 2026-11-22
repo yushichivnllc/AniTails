@@ -130,7 +130,7 @@ Do đó, AniTails thiết kế **4 Profile build độc lập** (`./scripts/buil
    - **Rủi ro tồn dư trung thực:** Để triệt tiêu hoàn toàn hiện tượng lưu ảnh điện tích trên chip nhớ VRAM rời đối với kẻ tấn công vật lý tại chỗ (cold-boot trên GPU), người dùng phải **tắt nguồn vật lý hoàn toàn (cold power-off)** thay vì chỉ khởi động lại ấm (warm reboot).
 2. **Chống lộ định danh phần cứng (GPU UUID, Serial Number & Tor Browser Fingerprinting):**
    - `anitails-gpu-detect`, `anitails-gpu-select` và `anitails-cuda-check` tự động lọc bỏ mọi chuỗi `GPU-<UUID>`, `MIG-<UUID>`, số serial bo mạch (`Serial Number`) và địa chỉ MAC trước khi xuất chẩn đoán.
-   - Trình khởi chạy `/usr/local/bin/anitails-tor-browser` dùng `--dev /dev` của `bubblewrap` (chỉ tạo thiết bị ảo tối thiểu `null/zero/urandom/tty`), **không gắn `/dev/nvidia*` hay `/dev/dri/renderD*` vào bên trong container Tor Browser**, đồng thời giữ nguyên cấu hình chống vân tay trình duyệt của Tor Browser `16.0` (không bật ép WebGL phần cứng).
+   - Trình khởi chạy `/usr/local/bin/anitails-tor-browser` dùng `--dev /dev` của `bubblewrap` (chỉ tạo thiết bị ảo tối thiểu `null/zero/urandom/tty`), **không gắn `/dev/nvidia*` hay `/dev/dri/renderD*` vào bên trong container Tor Browser**, đồng thời giữ nguyên cấu hình chống vân tay trình duyệt của Tor Browser `16.0.1` (không bật ép WebGL phần cứng).
 3. **Không đánh đổi Hardening Nhân:**
    - Mọi mục khởi động trên BIOS và UEFI đều giữ nguyên `lsm=landlock,lockdown,yama,integrity,apparmor,bpf lockdown=integrity module.sig_enforce=1`, `CONFIG_X86_KERNEL_IBT=y` và `CONFIG_INTEL_IOMMU_DEFAULT_ON=y`. Các module `nvidia-open-anitails` và `nvidia-580xx-anitails` bắt buộc phải được ký X.509 bằng khóa build-time của nhân (`sign-file sha512`) trước khi đóng gói SquashFS.
 

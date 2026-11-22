@@ -32,7 +32,7 @@ Không một hệ điều hành nào là "bất khả xâm phạm". Tài liệu 
 - Nếu người dùng tự đăng nhập tài khoản định danh thật hoặc tải lên tài liệu còn chứa siêu dữ liệu cá nhân (chưa làm sạch bằng `mat2`), danh tính vẫn bị lộ ở tầng ứng dụng.
 
 ### 2.4. Khai Thác 0-Day Trình Duyệt Kết Hợp Thoát Khỏi Hộp Cát Nhân / Phiên D-Bus (`#21524`)
-- Tor Browser `16.0` được bao bọc bởi 3 lớp: hộp cát nội bộ của Firefox (`RLBox`/seccomp), `bubblewrap` (`--unshare-all`) và hồ sơ AppArmor, cùng không gian tên mạng riêng `tbb`. Ngay cả khi trình duyệt bị khai thác thực thi mã từ xa (RCE), mã độc trong `tbb` **vẫn không thể gửi gói tin trực tiếp ra Internet để lộ IP thật** vì không gian tên `tbb` chỉ có đường dẫn duy nhất sang cổng SOCKS/onion-grater của Tor.
+- Tor Browser `16.0.1` được bao bọc bởi 3 lớp: hộp cát nội bộ của Firefox (`RLBox`/seccomp), `bubblewrap` (`--unshare-all`) và hồ sơ AppArmor, cùng không gian tên mạng riêng `tbb`. Ngay cả khi trình duyệt bị khai thác thực thi mã từ xa (RCE), mã độc trong `tbb` **vẫn không thể gửi gói tin trực tiếp ra Internet để lộ IP thật** vì không gian tên `tbb` chỉ có đường dẫn duy nhất sang cổng SOCKS/onion-grater của Tor.
 - Tuy nhiên, trên môi trường máy tính để bàn X11/i3-gaps (stack tự viết), việc chia sẻ một số giao diện phiên đồ họa (`Xorg` shared display) hoặc lỗ hổng leo thang đặc quyền 0-day ngay trong nhân Linux vẫn là bề mặt tấn công tồn dư (tương tự giới hạn kiến trúc AppArmor/D-Bus được dự án Tails ghi nhận tại `#21524`).
 
 ### 2.4b. Bề Mặt Cấu Hình Giao Diện (Stack i3-gaps tự viết)

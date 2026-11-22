@@ -53,7 +53,7 @@ Xem chi tiết tại [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md).
   - Không có `ct state related` toàn cục (chỉ cho phép ICMP related trên `lo`) nhằm triệt tiêu lớp lỗ hổng conntrack helper (ALG).
   - Không có trình duyệt `Unsafe Browser` hay tài khoản `clearnet` đi vòng qua tường lửa.
 - **Cách ly luồng Tor (Proposal 171 Stream Isolation) & Cách ly Network Namespace:**
-  - `10.200.1.1:9050` (dành riêng cho netns `tbb` của Tor Browser): bật `IsolateSOCKSAuth KeepAliveIsolateSOCKSAuth SessionGroup=3`, kết hợp `extensions.torbutton.use_firstparty_isolation` của Tor Browser 16.0 để mỗi tên miền cấp một đi qua một mạch Tor riêng biệt.
+  - `10.200.1.1:9050` (dành riêng cho netns `tbb` của Tor Browser): bật `IsolateSOCKSAuth KeepAliveIsolateSOCKSAuth SessionGroup=3`, kết hợp `extensions.torbutton.use_firstparty_isolation` của Tor Browser 16.0.1 để mỗi tên miền cấp một đi qua một mạch Tor riêng biệt.
   - `127.0.0.1:9050` (`SessionGroup=1`, `IsolateDestAddr IsolateDestPort`): dành cho Thunderbird, Git, SSH, GnuPG `dirmngr`.
   - `127.0.0.1:9062` (`SessionGroup=2`): dành riêng cho tiện ích hệ thống AniTails.
   - `127.0.0.1:9065` (`SessionGroup=4`): dành riêng cho OnionShare và ví Electrum.
