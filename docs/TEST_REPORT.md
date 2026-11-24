@@ -12,7 +12,7 @@
 
 > ### TRẠNG THÁI: **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)**
 >
-> - **37 / 37 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm 22 bài cũ: 13 bài P0 bảo mật cốt lõi + 6 bài NVIDIA đa thế hệ + 3 bộ kiểm thử kiểm soát gói/profile, và 15 bài i3-gaps thay thế 17 bài Hyprland cũ). Không có bài kiểm thử thực thi nào thất bại (`0 FAIL`).
+> - **76 / 76 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm 22 bài cũ: 13 bài P0 bảo mật cốt lõi + 6 bài NVIDIA đa thế hệ + 3 bộ kiểm thử kiểm soát gói/profile; 23 bài i3-gaps trong `tests/test_i3_dotfiles.py` thay thế 17 bài Hyprland cũ; 21 bài lint ngữ pháp cấu hình i3 trong `tests/test_i3_config.py`; và 10 bài thanh trạng thái i3bar + `anitails-i3status` trong `tests/test_i3_bar.py`). Không có bài kiểm thử thực thi nào thất bại (`0 FAIL`).
 > - Tuy nhiên, có **7 cổng kiểm định ở trạng thái `BLOCKED` và 2 cổng ở trạng thái `SKIPPED`** do giới hạn khách quan của môi trường container (không có `CONFIG_NF_TABLES`, không có `mkarchiso`/`makepkg`/`qemu-system-x86_64`, không có khóa HSM ngoài, và **không có GPU NVIDIA vật lý `0x10de` hay PCIe passthrough** — lưu ý GPU ảo của QEMU **không** chứng minh được tương thích phần cứng NVIDIA thật).
 > - Theo đúng nguyên tắc trung thực kỹ thuật, hệ thống **chưa được phép công bố là bản phát hành sẵn sàng sử dụng thực địa** cho đến khi cả 5 cổng `P0` nêu trên được thực thi và đạt `PASS` trên máy trạm build Arch Linux chuyên dụng.
 > - Desktop mới (i3-gaps/Xorg) **chưa được khởi động thực tế** trong sandbox: cổng `GATE-QEMU-BOOT-BIOS-UEFI` vẫn `BLOCKED`, nên mọi kết luận về giao diện chỉ dựa trên kiểm thử tĩnh + seeder chạy thật (xem Mục 4).
@@ -117,11 +117,11 @@ bất kỳ tệp nào. Bài **T-36** chặn tái diễn. Bằng chứng: `git cl
 ## 5. Kiểm Thử Chuyển Sang i3-gaps trên Xorg (`tests/test_i3_dotfiles.py`, 15 bài — `2026-11-22`)
 
 Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
-`scripts/sync-i3-dotfiles.py --check` xác minh 9 tệp dotfiles trên đĩa, và `anitails-i3-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed/fail-closed.
+`scripts/sync-i3-dotfiles.py --check` xác minh 10 tệp dotfiles trên đĩa, và `anitails-i3-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed/fail-closed.
 
 | Mã | Nội dung | Trạng thái | Bằng chứng |
 |---|---|---|---|
-| **I-01** | Manifest dotfiles tự viết khớp `MANIFEST.sha256` (9 tệp) | **`PASS`** | `OK: 9 vendored dotfiles match MANIFEST.sha256` |
+| **I-01** | Manifest dotfiles tự viết khớp `MANIFEST.sha256` (10 tệp) | **`PASS`** | `PASS: 10 file(s) verified against MANIFEST.sha256` |
 | **I-02** | Provenance: `anitails:local` / `GPL-3.0-or-later`, không chứa HyDE/AniDE | **`PASS`** | `UPSTREAM.json` project/license |
 | **I-03** | Không có blob ELF trong cây vendor | **`PASS`** | Quét magic `\x7fELF`: 0 khớp |
 | **I-04** | Không có dconf/GNOME/dconf-paths trong cây vendor | **`PASS`** | Quét theo đường dẫn |
@@ -146,7 +146,7 @@ Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
 
 ---
 
-## 6. STEP 2 — UX/UI Polish & Wallpaper (`tests/test_i3_dotfiles.py`, 18 bài — `2026-11-22`)
+## 6. STEP 2 — UX/UI Polish & Wallpaper (`tests/test_i3_dotfiles.py`, 23 bài — `2026-11-22`)
 
 | Mã | Nội dung | Trạng thái |
 |---|---|---|
@@ -156,3 +156,86 @@ Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
 | **W-01** | Wallpaper `anitails-default.png` hợp lệ (magic `\x89PNG`, 1376×768, Midnight Aurora) | **`PASS`** |
 
 Đây là UX bổ sung chứ không thay đổi lớp bảo mật NFT/LUKS/netns; mọi bất biến fail-closed giữ nguyên.
+
+### 6.1. Cổng khởi động QEMU theo phiên i3/Xorg (`TestI3SessionBootGate`, 5 bài — `2026-11-22`)
+
+Sau khi GDM/GNOME bị gỡ, `anitails-virtio-boot-status` vẫn chờ `gdm.service` + `gnome-session`,
+nên mọi lần chạy `mkarchiso` thành công đều kết thúc bằng `ANITAILS_OS_BOOT_FAILED`. Năm bài
+kiểm thử dưới đây chốt lại cổng khởi động mới:
+
+| Mã | Nội dung | Trạng thái |
+|---|---|---|
+| **B-01** | `anitails-virtio-boot-status` thăm dò `Xorg` + `i3` (chỉ dòng mã, không tính chú thích) và **không** còn `gdm`/`gnome-session`/`gnome-shell` | **`PASS`** |
+| **B-02** | Unit `anitails-virtio-boot-status.service` giữ `ConditionVirtualization=vm` | **`PASS`** |
+| **B-03** | `scripts/ci-boot-test-iso.sh` không còn chờ GDM/GNOME | **`PASS`** |
+| **B-04** | `Configs/.xserverrc` có bit `+x`, ghim `vt${XDG_VTNR:-1}` và `-nolisten tcp` (Xorg rootless trên VT1) | **`PASS`** |
+| **B-05** | `i3` config không còn chỉ thị sai (`workspace_layouts`, `exit i3`, `move container to workspace to the left`) và không có `bindsym` trùng phím | **`PASS`** |
+
+Ngoài ra `test_packages_drop_hyprland_and_keep_i3_stack` chốt danh sách gói: `xorg-xcursor`,
+`bibata-cursor-theme`, `python-pulsectl` (không tồn tại trên Arch / chỉ có trên AUR) bị cấm,
+`libxcursor` + `capitaine-cursors` (đều thuộc `[extra]`) phải có mặt — đây chính là nguyên nhân
+`pacstrap` báo `error: target not found` trong lần build ISO trước.
+
+## 7. Lint Ngữ Pháp Cấu Hình i3 (`tests/test_i3_config.py`, 21 bài — `2026-11-22`)
+
+`i3` **không** dừng lại khi cấu hình sai: chỉ thị không phân tích được thì nó bật `i3-nagbar`
+("You have an error in your i3 config file!"), còn lệnh binding sai thì **thất bại im lặng**
+lúc bấm phím. Cổng khởi động QEMU chỉ chứng minh `i3` *đang chạy*, nên hai lớp lỗi trên hoàn toàn
+lọt qua CI. `scripts/lint-i3-config.py` đối chiếu cấu hình với chính ngữ pháp của i3
+(`parser-specs/config.spec`, `parser-specs/commands.spec`, `src/con.c`, `src/config_directives.c`)
+và **thoát khác 0** khi có sai lệch; `tests/test_i3_config.py` chạy nó trên cây cấu hình đang
+phát hành **và** trên các cấu hình cố tình viết sai (để bài lint không thể "rỗng ruột").
+
+| Mã | Nội dung | Trạng thái |
+|---|---|---|
+| **L-01** | Cấu hình i3 đang phát hành: `lint()` trả về **0 vấn đề** và CLI thoát `0` | **`PASS`** |
+| **L-02** | `kill` chỉ nhận `[window\|client]`: `kill focused window` bị từ chối, `kill` / `kill window` được chấp nhận | **`PASS`** |
+| **L-03** | `smart_borders` + `hide_edge_borders` bị từ chối (i3 log *"Both hide_edge_borders and smart_borders was used. Ignoring smart_borders as it is deprecated."* rồi bỏ `smart_borders`) | **`PASS`** |
+| **L-04** | `workspace_layout` chỉ nhận `default\|stacking\|stacked\|tabbed`; `workspace_layouts`, `splitv`… bị từ chối | **`PASS`** |
+| **L-05** | Token của `layout toggle` phải thuộc `{split, splitv, splith, stacking, stacked, tabbed, all, default}`; danh sách 2 và 3 chế độ hợp lệ đều được chấp nhận | **`PASS`** |
+| **L-06** | `bindsym` trùng phím (sau khi mở `$mod` → `Mod4`) bị phát hiện; modifier lạ (`Hyper`) và biến chưa `set` bị từ chối | **`PASS`** |
+| **L-07** | `client.*` phải có đúng 5 màu (`border background text indicator child_border`); 4 màu bị từ chối | **`PASS`** |
+| **L-08** | Khối `bar { … }`: `mode` chỉ nhận `dock\|hide\|invisible`, khoá lạ trong `bar` bị từ chối, khối không đóng bị từ chối | **`PASS`** |
+| **L-09** | `gaps inner` thiếu pixel, `default_border pixel` thiếu độ rộng, `resize grow width` thiếu `px` đều bị từ chối | **`PASS`** |
+
+Hai lỗi thật đã được sửa trong lần này (xem `docs/I3WM_INTEGRATION.md` §7):
+
+* `bindsym $mod+d kill focused window` → **`bindsym $mod+d kill`** — `kill` không có tham số
+  "focused", nên phím đóng cửa sổ trước đây **không làm gì cả**.
+* `hide_edge_borders vertical` + `smart_borders on` → **`hide_edge_borders smart`** — i3 bỏ
+  `smart_borders` (deprecated) và ghi cảnh báo; `smart` giữ đúng ý định "ẩn viền khi chỉ có một
+  cửa sổ" mà không sinh log.
+
+**Kết luận Mục 7:** cả 21 bài đạt `PASS`; cấu hình i3 hiện không còn chỉ thị/lệnh binding nào
+sai ngữ pháp. Phần **chưa chứng minh được** vẫn là hành vi đồ hoạ thật (bar, phím tắt) — việc đó
+chỉ đóng lại được bằng `GATE-QEMU-BOOT-BIOS-UEFI` (vẫn `BLOCKED` trong sandbox) trên máy build
+Arch Linux thật.
+
+## 8. Thanh Trạng Thái Xorg: i3bar + `anitails-i3status` (`tests/test_i3_bar.py`, 10 bài — `2026-11-22`)
+
+Waybar từ 0.11 chỉ vẽ qua `gtk-layer-shell`, mà `gtk_layer_is_supported()` trả `FALSE` khi
+display mặc định không phải Wayland (`if (!GDK_IS_WAYLAND_DISPLAY (...)) return FALSE;`), còn
+`gtk_layer_init_for_window()` trên X11 chỉ ghi *"Falling back to XDG shell … layer features will
+not work"* và để cửa sổ thành một toplevel GTK thường. Trên phiên Xorg + i3-gaps, Waybar vì thế
+hiện ra như **một cửa sổ lạc bị i3 xếp vào tile** thay vì thanh trạng thái — lỗi hiển thị này
+không làm ISO "đỏ" vì cổng khởi động chỉ kiểm tra `i3` đang chạy. Giải pháp: `i3bar` (đi kèm gói
+`i3`) do `anitails-i3status` nuôi dữ liệu, giữ nguyên banner posture trước đây.
+
+| Mã | Nội dung | Trạng thái |
+|---|---|---|
+| **S-01** | `anitails-i3status --once` in header `{"version": 1, "click_events": false}` + một frame i3bar JSON hợp lệ, đủ 5 block `posture/firewall/persistence/ramwipe/clock` với màu `#rrggbb` | **`PASS`** |
+| **S-02** | Block `clock` có dạng người đọc (`HH:MM  Sat 22 Nov`) và dạng máy (`YYYY-MM-DD HH:MM` trong tooltip), không phụ thuộc locale | **`PASS`** |
+| **S-03** | `anitails-posture` chạy được → block posture phản ánh đúng trạng thái (`Tor ●`/`Tor ○`), tooltip chứa `Firewall:`/`RAM wipe:` | **`PASS`** |
+| **S-04** | `anitails-posture` lỗi (`/bin/false`) hoặc **không tồn tại** → vẫn in frame hợp lệ (`Tor ○`, `unknown`), thanh không chết vì một probe hỏng | **`PASS`** |
+| **S-05** | Posture tổng hợp (`tor=connected`, `firewall=enforced`, `persistence=unlocked`, `ram_wipe=armed`) render đúng `Tor ●`/`fw ✓`/`LUKS ●`/`RAM ✓` | **`PASS`** |
+| **S-06** | `anitails-i3-bar.sh` **không có** `WAYLAND_DISPLAY` → thoát `0` kèm thông báo giải thích (không spam lỗi qua `exec_always`) | **`PASS`** |
+| **S-07** | Kể cả khi có `waybar` giả trên `PATH`, script **không** chạy Waybar trong phiên `XDG_SESSION_TYPE=x11` | **`PASS`** |
+| **S-08** | `Configs/.config/i3/config` dùng `mode dock` + `status_command /usr/local/bin/anitails-i3status`, có `bindsym $mod+Shift+b bar mode toggle`, không còn `mode hide` | **`PASS`** |
+| **S-09** | Cấu hình i3 sau khi thêm khối `bar` vẫn qua `scripts/lint-i3-config.py` (0 lỗi, gồm kiểm tra số màu của từng lớp bar) | **`PASS`** |
+| **S-10** | `anitails-i3status` có bit `+x` và `py_compile` sạch (bắt buộc để `i3bar` exec trực tiếp) | **`PASS`** |
+
+**Kết luận Mục 8:** cả 10 bài đạt `PASS`. Phần **chưa chứng minh được** là việc i3bar thực sự
+vẽ thanh trên màn hình X11 — chỉ đóng lại được bằng `GATE-QEMU-BOOT-BIOS-UEFI` (vẫn `BLOCKED`
+trong sandbox); ở đây chỉ chốt được giao thức JSON, tính bền vững khi probe lỗi và việc Waybar
+không còn bị khởi động trên Xorg.
+

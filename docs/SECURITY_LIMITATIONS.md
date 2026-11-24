@@ -32,12 +32,12 @@ Không một hệ điều hành nào là "bất khả xâm phạm". Tài liệu 
 - Nếu người dùng tự đăng nhập tài khoản định danh thật hoặc tải lên tài liệu còn chứa siêu dữ liệu cá nhân (chưa làm sạch bằng `mat2`), danh tính vẫn bị lộ ở tầng ứng dụng.
 
 ### 2.4. Khai Thác 0-Day Trình Duyệt Kết Hợp Thoát Khỏi Hộp Cát Nhân / Phiên D-Bus (`#21524`)
-- Tor Browser `16.0` được bao bọc bởi 3 lớp: hộp cát nội bộ của Firefox (`RLBox`/seccomp), `bubblewrap` (`--unshare-all`) và hồ sơ AppArmor, cùng không gian tên mạng riêng `tbb`. Ngay cả khi trình duyệt bị khai thác thực thi mã từ xa (RCE), mã độc trong `tbb` **vẫn không thể gửi gói tin trực tiếp ra Internet để lộ IP thật** vì không gian tên `tbb` chỉ có đường dẫn duy nhất sang cổng SOCKS/onion-grater của Tor.
+- Tor Browser `16.0.1` được bao bọc bởi 3 lớp: hộp cát nội bộ của Firefox (`RLBox`/seccomp), `bubblewrap` (`--unshare-all`) và hồ sơ AppArmor, cùng không gian tên mạng riêng `tbb`. Ngay cả khi trình duyệt bị khai thác thực thi mã từ xa (RCE), mã độc trong `tbb` **vẫn không thể gửi gói tin trực tiếp ra Internet để lộ IP thật** vì không gian tên `tbb` chỉ có đường dẫn duy nhất sang cổng SOCKS/onion-grater của Tor.
 - Tuy nhiên, trên môi trường máy tính để bàn X11/i3-gaps (stack tự viết), việc chia sẻ một số giao diện phiên đồ họa (`Xorg` shared display) hoặc lỗ hổng leo thang đặc quyền 0-day ngay trong nhân Linux vẫn là bề mặt tấn công tồn dư (tương tự giới hạn kiến trúc AppArmor/D-Bus được dự án Tails ghi nhận tại `#21524`).
 
 ### 2.4b. Bề Mặt Cấu Hình Giao Diện (Stack i3-gaps tự viết)
 
-- AniTails chuyển từ GNOME sang **i3-gaps trên Xorg (X11)** — toàn bộ stack do AniTails viết (`docs/I3WM_INTEGRATION.md`). Đây là mã cấu hình **tự viết** (`GPL-3.0-or-later`, 9 tệp) chạy **dưới quyền người dùng `amnesia`**, không có tiến trình đồ họa nào chạy root (không display manager).
+- AniTails chuyển từ GNOME sang **i3-gaps trên Xorg (X11)** — toàn bộ stack do AniTails viết (`docs/I3WM_INTEGRATION.md`). Đây là mã cấu hình **tự viết** (`GPL-3.0-or-later`, 10 tệp) chạy **dưới quyền người dùng `amnesia`**, không có tiến trình đồ họa nào chạy root (không display manager).
 - Rủi ro tồn dư: một lỗi trong wrapper X11 (`anitails-i3.sh`), shell scripts (`anitails-i3-session`, `anitails-i3-bar.sh`, `anitails-screenshot`) hoặc cấu hình i3/Waybar có thể làm lộ dữ liệu **trong phạm vi `$HOME`** hoặc gây treo phiên. AniTails giảm thiểu bằng cách:
   1. Ghim SHA-256 từng tệp cấu hình; `anitails-i3-seed` từ chối seed nếu manifest sai lệch, và quá trình build chạy `sync-i3-dotfiles.py --check`.
   2. **Không** đóng gói binary bên thứ ba dựng sẵn (`hydectl`, `hyde-ipc`, Quickshell, ...) và **không** dùng gói AUR.

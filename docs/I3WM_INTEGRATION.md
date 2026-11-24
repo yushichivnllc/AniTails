@@ -6,7 +6,7 @@ AniDE/HyDE (Wayland, ~123.000 dòng vendor) bằng **i3-gaps trên Xorg (X11)** 
 không còn display manager: `getty@tty1` tự đăng nhập `amnesia` → `startx` →
 `i3` (Xorg native).
 
-- Các tệp cấu hình gốc (9 tệp, ~500 dòng) nằm tại
+- Các tệp cấu hình gốc (10 tệp, ~520 dòng) nằm tại
   `archiso/airootfs/usr/share/anitails/i3/Configs/**`, ghim **commit + SHA-256
   từng tệp** (`MANIFEST.sha256`, do `scripts/sync-i3-dotfiles.py` sinh ra), và
   được **seed** Offline vào `$HOME` bởi `anitails-i3-seed` (fail-closed nếu
@@ -58,24 +58,59 @@ Hyprland + AniDE/HyDE nặng (~123K dòng vendor, 485 tệp, commit ghim, manife
 
 | Nhóm | Gói |
 |---|---|
-| Compositor & phiên | `xorg-server`, `xorg-xinit`, `xorg-xauth`, `xorg-xrdb`, `xorg-xsetroot`, `xorg-xrandr`, `xorg-xcursor`, `i3-gaps`, `polkit` |
-| Shell desktop | `waybar`, `wofi`, `dunst`, `libnotify`, `cliphist`, `scrot`, `feh` |
+| Compositor & phiên | `xorg-server`, `xorg-xinit`, `xorg-xauth`, `xorg-xrdb`, `xorg-xsetroot`, `xorg-xrandr`, `libxcursor`, `i3-gaps`, `polkit` |
+| Shell desktop | `i3bar` (đi kèm `i3`) + `anitails-i3status`, `wofi`, `dunst`, `libnotify`, `cliphist`, `scrot`, `feh` (gói `waybar` vẫn cài nhưng **không** chạy trên Xorg — xem §3.3) |
 | Terminals/Files/Media | `kitty`, `dolphin`, `ark`, `kde-cli-tools`, `ffmpegthumbs`, `qt5-imageformats`, `kimageformats`, `kate`, `mpv`, `celluloid`, `imv`, `zathura`, `zathura-pdf-mupdf`, `qalculate-qt`, `vim`, `fzf` |
-| Theming | `gtk3`, `gtk4`, `qt5ct`, `qt6ct`, `nwg-look`, `adwaita-icon-theme`, `bibata-cursor-theme`, `xsettingsd` |
+| Theming | `gtk3`, `gtk4`, `qt5ct`, `qt6ct`, `nwg-look`, `adwaita-icon-theme`, `capitaine-cursors`, `xsettingsd` |
 | Bảo vệ quyền riêng tư | `ibus`, `ibus-unikey`, `keepassxc`, `mat2`, `electrum`, `thunderbird`, `onionshare` |
 
 ### 3.2. Cấu trúc thư mục
 
 | Đường dẫn | Nội dung |
 |---|---|
-| `archiso/airootfs/usr/share/anitails/i3/` | 9 tệp design (`Configs/`) + `MANIFEST.sha256` + `UPSTREAM.json` |
+| `archiso/airootfs/usr/share/anitails/i3/` | 10 tệp design (`Configs/`) + `MANIFEST.sha256` + `UPSTREAM.json` |
 | `archiso/airootfs/usr/local/lib/anitails-i3-seed` | Seeder offline, fail-closed |
-| `archiso/airootfs/usr/local/lib/anitails-i3-bar.sh` | Khởi động waybar chính sách |
+| `archiso/airootfs/usr/local/bin/anitails-i3status` | `status_command` của i3bar: banner posture (Tor ●/○, fw, LUKS, RAM wipe) + đồng hồ, giao thức JSON của i3bar |
+| `archiso/airootfs/usr/local/lib/anitails-i3-bar.sh` | Launcher Waybar **chỉ cho phiên Wayland**; trên Xorg thoát `0` kèm thông báo |
 | `archiso/airootfs/usr/local/lib/anitails-i3-desktop/lockscreen-disabled.sh` | Thông báo tắt khóa (Tails-style) |
 | `archiso/airootfs/usr/local/bin/anitails-i3-session` | Launcher (`startx` → `i3-gaps`), fail-closed |
 | `archiso/airootfs/usr/local/bin/anitails-i3-doctor` | Báo cáo thành phần i3 + seed state |
 | `archiso/airootfs/usr/local/bin/anitails-screenshot` | Screenshot `scrot` + hộp thoại cảnh báo |
-| `archiso/airootfs/etc/X11/xinit/anitails-i3.sh` | Wrapper Xorg (gọi `startx`) |
+| `archiso/airootfs/etc/X11/xinit/anitails-i3.sh` | Wrapper Xorg (client mà `startx` chạy) |
+| `Configs/.xserverrc` | `$HOME/.xserverrc` đã seed — ghim Xorg vào `vt$XDG_VTNR` để chạy **rootless** trên VT1 |
+
+### 3.3. Vì sao thanh trạng thái là i3bar, không phải Waybar
+
+Waybar từ **0.11** vẽ **duy nhất** qua `gtk-layer-shell` (`Require gtk-layer-shell`).
+Thư viện đó trả lời câu hỏi "có hỗ trợ không" bằng chính loại display:
+
+```c
+gboolean gtk_layer_is_supported () {
+    if (!GDK_IS_WAYLAND_DISPLAY (gdk_display_get_default ()))
+        return FALSE;
+    ...
+}
+```
+
+và khi bị gọi trên X11, `gtk_layer_init_for_window()` chỉ ghi
+*"Falling back to XDG shell instead of Layer Shell (surface should appear but layer features
+will not work)"* rồi để cửa sổ thành **toplevel GTK thường**. Với i3, hệ quả không phải "bar
+thiếu vài tính năng" mà là **một cửa sổ lạc bị xếp vào tile** ở mỗi lần đăng nhập — vừa xấu vừa
+chiếm chỗ, và không có strut nên cửa sổ khác bị đẩy xuống.
+
+Cách AniTails xử lý (không thêm gói nào — `i3bar` nằm trong gói `i3`):
+
+| Thành phần | Vai trò |
+|---|---|
+| `bar { mode dock; position top; status_command /usr/local/bin/anitails-i3status --interval 5 }` | i3bar vẽ thanh, workspace buttons + tray tắt (`tray_output none`) |
+| `anitails-i3status` | In header `{"version": 1}` rồi mỗi 5 s một frame block JSON: `posture`, `firewall`, `persistence`, `ramwipe`, `clock` |
+| `anitails-posture --json` | Nguồn dữ liệu posture (best-effort; lỗi → `unknown`, thanh không chết) |
+| `anitails-i3-bar.sh` | Chỉ chạy Waybar khi có `WAYLAND_DISPLAY`; ngoài Wayland thoát `0` + thông báo |
+| `SUPER+Shift+B` | `bar mode toggle` (ẩn/hiện thanh) |
+
+`i3bar` không nằm trong `MANIFEST.sha256` (chỉ `Configs/` mới được seed vào `$HOME`);
+`anitails-i3status` là script hệ thống tại `/usr/local/bin` và được kiểm thử bởi
+`tests/test_i3_bar.py` (10 bài, xem `docs/TEST_REPORT.md` §8).
 
 ---
 
@@ -87,16 +122,25 @@ Hyprland + AniDE/HyDE nặng (~123K dòng vendor, 485 tệp, commit ghim, manife
         └── anitails-i3-session
              ├── anitails-i3-seed --quiet  (verify MANIFEST.sha256 trước, fail-closed)
              └── startx /etc/X11/xinit/anitails-i3.sh
+                  ├── ~/.xserverrc -> /usr/bin/X -nolisten tcp vt$XDG_VTNR  (rootless, cùng VT1)
                   ├── xsetroot -solid '#0a0d16'
                   ├── feh --bg-fill ... (best-effort)
                   └── exec /usr/bin/i3
-                       ├── exec_always xrdb -merge ~/.Xresources  (cursor Bibata-Modern-Ice, DPI 96)
-                       ├── exec_always anitails-i3-bar.sh       (waybar)
+                       ├── exec_always xrdb -merge ~/.Xresources  (cursor capitaine-cursors, DPI 96)
+                       ├── exec_always anitails-i3-bar.sh       (no-op on Xorg)
+                       ├── bar { status_command anitails-i3status }  (i3bar + posture)
                        └── exec_always dunst
 ```
 
 - Không greeter, không display manager, không root GUI.
 - `anitails-i3-session` poweroff khi i3 thoát sạch; 3 lần crash → drop shell dự phòng (không loopvô hạn).
+- Xorg chạy **rootless**: `~/.xserverrc` (seed từ `Configs/.xserverrc`, đã kiểm `MANIFEST.sha256`)
+  truyền `vt$XDG_VTNR` để server ở lại đúng VT mà `pam_systemd` đã cấp cho phiên autologin.
+  Thiếu tham số này Xorg phải `VT_ACTIVATE` một VT khác — thao tác cần root — nên hoặc tự
+  re-exec bằng quyền root, hoặc dừng với `SIGTTOU` và không có phiên đồ hoạ nào xuất hiện.
+  `-nolisten tcp` giữ nguyên mặc định của gói: live system không mở transport X qua TCP.
+- Phím tắt không gian làm việc: `SUPER + <1..9>` chuyển workspace, `SUPER + CTRL + <1..9>`
+  đưa cửa sổ đang focus sang workspace đó (`SUPER + SHIFT + 4` dành cho chụp màn hình kiểu macOS).
 
 ---
 
@@ -116,13 +160,15 @@ Three UX/UI additions ship with this i3-gaps stack:
 
 | UX element | Implementation |
 |---|---|
-| **Security posture module** | `anitails-posture --inline` feeds a `custom/posture` waybar module (bottom-right, cyan→violet chip). Shows Tor ●/○ + tooltip with firewall/persistence/RAM-wipe/release verdict. `on-click` opens settings. |
+| **Security posture module** | `anitails-posture --json` feeds `anitails-i3status`, which renders a `posture` block in **i3bar** (`Tor ●`/`Tor ○`, plus `fw`/`LUKS`/`RAM` chips, cyan = healthy, amber/muted = not). The tooltip carries firewall/persistence/RAM-wipe/release verdict. The same `anitails-posture --inline` module is kept in `waybar/config.jsonc` for a future Wayland session. |
 | **Settings / posture surface** | SUPER+S → `anitails-settings` (kitty `--layout stacked`, dark chrome, kitty.conf decorations). Falls back to a console print if kitty is absent. `--json` mode for scripts. |
 | **Wallpaper** | `anitails-default.png` — Midnight Aurora gradient (cyan→violet over #0a0d16), 1376×768, generated for this design (NOT a stock AniTails/HyDE image). |
 
 - Design preview (AI-generated mock, **not** an actual screenshot of the live system): [`docs/assets/design-preview.png`](assets/design-preview.png)
 - Wallpaper replacement (file-in-place, no manifest change — wallpaper lives outside the `Configs/` tree).
-- Waybar custom/posture module: `custom/posture` in `waybar/config.jsonc` + `#custom-posture` rule in `style.css`.
+- i3bar posture blocks: `anitails-i3status` (`posture`, `firewall`, `persistence`, `ramwipe`, `clock`);
+  Waybar `custom/posture` (`waybar/config.jsonc` + `#custom-posture` in `style.css`) is Wayland-only fallback — see §3.3.
+- Bar toggle: `bindsym $mod+Shift+b bar mode toggle`.
 - i3 binding: `bindsym $mod+S exec /usr/local/bin/anitails-settings`.
 
 ## 6b. Trade-off & Quyết định
@@ -132,7 +178,7 @@ Three UX/UI additions ship with this i3-gaps stack:
 | Vật lý trên màn hình | Cách ly theo app (mỗi app 1 screen) | X11 shared display — mọi app đọc được nội dung màn hình của app khác |
 | Phù hợp AniTails | Rất cao (nhưng nặng) | Trung bình — chấp nhận rủi ro X11 khi muốn giảm độ phức tạp |
 | Kích thước ISO | Vùng lớn (~123K dòng vendor) | Nhỏ (~500 dòng tự viết) |
-| Offline/kiểm toán | Khó (485 hash + commit ghim) | Dễ (9 tệp, 1 manifest) |
+| Offline/kiểm toán | Khó (485 hash + commit ghim) | Dễ (10 tệp, 1 manifest) |
 | Ảnh nền/screenshot | `hyprpaper` (trong cluster) | `feh` + `scrot` (tool nhẹ, X11 chuẩn) |
 
 Nếu muốn hoàn nguyên cho mục đích bảo mật cao hơn, sway/wlroots là hướng đi
@@ -142,6 +188,37 @@ PR/commit message). Xem mục §2.4b trong `SECURITY_LIMITATIONS.md`.
 ---
 
 ## 7. Gỡ lỗi
+
+### 7.1. Cấu hình i3 sai mà không làm ISO "đỏ"
+
+`i3` cố tình chạy tiếp với cấu hình lỗi: lỗi ngữ pháp → `i3-nagbar` ("You have an error in
+your i3 config file!"), lệnh binding sai → thất bại im lặng khi bấm phím. Vì vậy mọi thay đổi
+`Configs/.config/i3/config` phải qua lint trước khi commit:
+
+```bash
+python3 scripts/lint-i3-config.py    # exit 0 = không còn lỗi; exit 1 = in từng dòng lỗi
+python3 -m unittest tests.test_i3_config -v
+```
+
+Hai lỗi đã sửa (`2026-11-22`):
+
+| Dòng cũ | Lỗi i3 | Dòng mới |
+|---|---|---|
+| `bindsym $mod+d kill focused window` | `kill` chỉ nhận `[window\|client]`; lệnh sai nên **phím đóng cửa sổ không có tác dụng** | `bindsym $mod+d kill` |
+| `hide_edge_borders vertical` + `smart_borders on` | `smart_borders` đã deprecated và bị bỏ kèm cảnh báo *"Both hide_edge_borders and smart_borders was used. Ignoring smart_borders as it is deprecated."* | `hide_edge_borders smart` (giữ đúng ý định ẩn viền khi chỉ một cửa sổ) |
+
+Bảng ngữ pháp thường dùng (đã đối chiếu `parser-specs/`):
+
+| Chỉ thị | Giá trị hợp lệ |
+|---|---|
+| `workspace_layout` | `default`, `stacking`, `stacked`, `tabbed` (**không** có `splitv`) |
+| `hide_edge_borders` | `none`, `vertical`, `horizontal`, `both`, `smart`, `smart_no_gaps` |
+| `smart_borders` | `on`/`no_gaps` — **đừng dùng cùng** `hide_edge_borders` (bị bỏ, sinh log) |
+| `gaps` | `inner\|outer\|horizontal\|vertical\|top\|right\|bottom\|left <n>px` |
+| `layout toggle` | danh sách các mode trong `{split, splitv, splith, stacking, stacked, tabbed, all, default}` |
+| `kill` | không tham số, hoặc `kill window` / `kill client` |
+
+### 7.2. Các lệnh chẩn đoán
 
 ```bash
 # kiểm tra manifest i3 (không seed)

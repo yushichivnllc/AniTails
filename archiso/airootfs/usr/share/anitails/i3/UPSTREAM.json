@@ -4,7 +4,7 @@
   "upstream_project": "anitails:self",
   "license": "GPL-3.0-or-later",
   "version": "1.0.0",
-  "commit": "6b871eb1f5435e4cdea72e0d1853ed460c46f64b",
-  "file_count": 9,
+  "commit": "74f59dcb3de05bd48f6bd459120126942e97b15b",
+  "file_count": 10,
   "note": "Self-written i3-gaps design system; no upstream vendoring. See docs/I3WM_INTEGRATION.md."
 }

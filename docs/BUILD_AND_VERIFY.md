@@ -27,7 +27,7 @@ Bộ kiểm thử tự động trong `tests/` có thể chạy ngay trên bất 
 python3 tests/run_all_tests.py
 ```
 
-- Toàn bộ 19 bài kiểm thử thực thi (13 bài P0 bảo mật nền tảng: eMudhra + Sectigo `AAA` cross-sign, tường lửa `nftables` + cách ly luồng Tor + cảm biến rò rỉ, giả mạo MAC fail-closed, `onion-grater`, LUKS2 Argon2id, C11 `anitails-udev-watchdog`, chống giả mạo SBOM/ISO; cùng 6 bộ kiểm thử NVIDIA: nhận diện 1,558 PCI+subsystem ID qua 14 thế hệ, điều phối driver không xung đột, từ chối module chưa ký/lệch ABI/thiếu GSP, Optimus/eGPU IOMMU gate, kiểm tra Compute Capability `SM` của CUDA, ẩn GPU UUID/Serial & cách ly Tor Browser `bwrap`) phải đạt **`OK (37/37)`**.
+- Toàn bộ 19 bài kiểm thử thực thi (13 bài P0 bảo mật nền tảng: eMudhra + Sectigo `AAA` cross-sign, tường lửa `nftables` + cách ly luồng Tor + cảm biến rò rỉ, giả mạo MAC fail-closed, `onion-grater`, LUKS2 Argon2id, C11 `anitails-udev-watchdog`, chống giả mạo SBOM/ISO; cùng 6 bộ kiểm thử NVIDIA: nhận diện 1,558 PCI+subsystem ID qua 14 thế hệ, điều phối driver không xung đột, từ chối module chưa ký/lệch ABI/thiếu GSP, Optimus/eGPU IOMMU gate, kiểm tra Compute Capability `SM` của CUDA, ẩn GPU UUID/Serial & cách ly Tor Browser `bwrap`) phải đạt **`OK (76/76)`** (22 bài P0/NVIDIA + 23 bài i3-gaps + 21 bài lint ngữ pháp i3 + 10 bài i3bar/`anitails-i3status`).
 
 ---
 
@@ -40,15 +40,29 @@ chroot bởi `anitails-alpm-finalize`, và ở mỗi lần đăng nhập bởi `
 
 ```bash
 python3 scripts/sync-i3-dotfiles.py --check
-# OK: 9 vendored dotfiles match MANIFEST.sha256
+# PASS: 10 file(s) verified against MANIFEST.sha256
 ```
 
 Nếu cần chỉnh sửa stack i3-gaps (thêm/bỏ tệp trong `Configs/`):
 
 ```bash
 python3 scripts/sync-i3-dotfiles.py            # regenerate manifest + UPSTREAM.json
-python3 -m unittest tests.test_i3_dotfiles -v  # 15 test
+python3 scripts/lint-i3-config.py              # PASS: i3 config is valid (0 problems)
+python3 -m unittest tests.test_i3_dotfiles -v  # 23 test
+python3 -m unittest tests.test_i3_config -v    # 21 test
+python3 -m unittest tests.test_i3_bar -v       # 10 test
 ```
+
+`scripts/lint-i3-config.py` là cổng **bắt buộc** sau mỗi lần sửa `Configs/.config/i3/config`:
+`i3` không thoát khi cấu hình sai — nó bật `i3-nagbar` cho lỗi ngữ pháp và **bỏ qua im lặng**
+lệnh binding sai (ví dụ `kill focused window` không làm gì cả) — nên lỗi chỉ hiện ra trên
+màn hình người dùng chứ không làm đỏ CI. Lint đối chiếu từng chỉ thị với
+`parser-specs/config.spec`, từng lệnh binding với `parser-specs/commands.spec`, và từ chối các
+tổ hợp bị i3 âm thầm bỏ (`smart_borders` + `hide_edge_borders`).
+
+Nếu `i3` vẫn bật nagbar trên máy thật, chép nguyên văn thông báo trong nagbar (hoặc
+`grep -i "error\|expected" ~/.local/share/xorg/Xorg.0.log` / `journalctl -b`) rồi đối chiếu
+bảng ngữ pháp; lint được thiết kế để báo đúng cùng một lỗi.
 
 Xem [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md) để biết danh sách tệp và trade-off.
 
@@ -132,6 +146,14 @@ qemu-system-x86_64 -enable-kvm -m 4096 -smp 2 \
   -cdrom out/anitails-0.1.0-x86_64.iso -boot d \
   -netdev user,id=net0 -device virtio-net-pci,netdev=net0
 ```
+
+Cổng kiểm thử tự động trong CI (`scripts/ci-boot-test-iso.sh`) không đọc màn hình: nó chờ dòng
+`ANITAILS_OS_BOOT_READY` do `anitails-virtio-boot-status` phát ra qua `ttyS0` +
+`virtio-serial` (`org.anitails.status`). Dòng đó chỉ được phát khi **Xorg chạy rootless dưới
+`amnesia` + `i3` là window manager + `nft list table inet anitails_filter` thành công + netns
+`tbb` tồn tại**; thiếu một điều kiện thì cổng báo `ANITAILS_OS_BOOT_FAILED` kèm log
+`getty@tty1`/`Xorg.0.log`/`systemctl --failed`/`loginctl`. Không còn `gdm.service` hay
+`gnome-session` nào trong cổng này (đã gỡ cùng GNOME).
 
 Trong phiên Live trên QEMU, kiểm tra thêm:
 - `cat /sys/kernel/security/lsm` -> phải chứa `apparmor`.

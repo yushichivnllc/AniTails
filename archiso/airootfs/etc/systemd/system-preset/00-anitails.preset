@@ -13,7 +13,10 @@ disable systemd-loop@.service
 disable sshd.service
 disable sshd.socket
 
-enable gdm.service
+# No display manager: the Xorg/i3 session is started by getty@tty1 autologin
+# (see /etc/systemd/system/getty@tty1.service.d/20-anitails-autologin.conf).
+# `gdm.service` is gone, so enabling it only produced a "unit not found" warning.
+enable getty@tty1.service
 enable NetworkManager.service
 enable nftables.service
 enable apparmor.service

@@ -100,7 +100,21 @@ jobs:
             archiso/airootfs/usr/local/bin/anitails-gpu-select \
             archiso/airootfs/usr/local/bin/anitails-cuda-check \
             scripts/verify-nvidia-lockstep.py \
-            scripts/generate-sbom-and-checksums.py
+            scripts/generate-sbom-and-checksums.py \
+            scripts/sync-i3-dotfiles.py \
+            scripts/lint-i3-config.py \
+            archiso/airootfs/usr/local/bin/anitails-i3status \
+            tests/test_i3_config.py \
+            tests/test_i3_bar.py
+
+      - name: Lint the i3 desktop configuration against i3's grammar
+        run: |
+          python3 scripts/lint-i3-config.py
+          python3 scripts/sync-i3-dotfiles.py --check
+          # The Xorg bar is i3bar fed by this script: prove the i3bar JSON protocol
+          # frame parses even when every posture probe fails.
+          archiso/airootfs/usr/local/bin/anitails-i3status --once --posture-cmd /bin/false \
+            | python3 -c 'import json,sys; head,_,body=sys.stdin.read().partition("\n"); assert json.loads(head)["version"]==1; assert len(json.loads(body))==1'
 
       - name: Validate nftables default-drop Tor firewall via kernel Netlink
         run: |
@@ -274,7 +288,7 @@ jobs:
             /tmp/anitails-ci-cache/pkgs
           key: anitails-pkgcache-v2-${{ matrix.profile }}-${{ hashFiles('pkgbuilds/**/PKGBUILD', 'pkgbuilds/linux-anitails/config.anitails.fragment', 'archiso/snapshot.lock.json') }}-${{ github.run_id }}
 
-      - name: Boot-test built ISO end-to-end in QEMU (Legacy BIOS + UEFI OVMF -> GDM amnesia session)
+      - name: Boot-test built ISO end-to-end in QEMU (Legacy BIOS + UEFI OVMF -> i3-gaps/Xorg amnesia session)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr libarchive-tools

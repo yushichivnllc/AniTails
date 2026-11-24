@@ -134,6 +134,13 @@ class TestI3SessionAndSessionContract(unittest.TestCase):
         for present in ("i3-gaps", "xorg-server", "xorg-xinit", "waybar",
                         "dunst", "wofi", "scrot", "feh", "cliphist"):
             self.assertIn(present, pkgs, f"{present} must ship in the i3-gaps stack")
+        # `mkarchiso` pacstrap resolves every name against [core]/[extra] only.
+        # AUR-only or non-existent names abort the ISO build with
+        # "error: target not found".
+        for bogus in ("xorg-xcursor", "bibata-cursor-theme", "python-pulsectl"):
+            self.assertNotIn(bogus, pkgs, f"{bogus} is not an official Arch package")
+        for real in ("libxcursor", "capitaine-cursors"):
+            self.assertIn(real, pkgs, f"{real} replaces the AUR-only cursor entries")
 
 
 class TestI3Step2UX(unittest.TestCase):
@@ -169,6 +176,66 @@ class TestI3Step2UX(unittest.TestCase):
         # The settings binding must not shadow the screenshot or browser bindings.
         self.assertIn("bindsym $mod+B exec $browser", txt)
         self.assertIn("bindsym $mod+Shift+4 exec $screenshot", txt)
+
+
+class TestI3SessionBootGate(unittest.TestCase):
+    """The QEMU live-boot gate must probe the i3/Xorg session, not the removed GDM/GNOME one.
+
+    Regression guard for the `Build ISO` failure where `mkarchiso` started
+    producing an i3-gaps ISO while `anitails-virtio-boot-status` still waited for
+    `gdm.service` + `gnome-session`, so every boot test reported
+    `ANITAILS_OS_BOOT_FAILED`.
+    """
+
+    @staticmethod
+    def _code_only(text: str) -> str:
+        """Drop `#` comment lines so documentation of the old gate cannot mask a regression."""
+        return "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
+
+    def test_boot_status_reporter_probes_xorg_and_i3(self) -> None:
+        txt = self._code_only(
+            (AIROOTFS / "usr/local/lib/anitails-virtio-boot-status").read_text(encoding="utf-8")
+        )
+        self.assertIn("ANITAILS_OS_BOOT_READY", txt)
+        self.assertIn("-x Xorg", txt)
+        self.assertIn("-x i3", txt)
+        self.assertIn("anitails_filter", txt)
+        self.assertIn("tbb", txt)
+        for gone in ("gdm", "gnome-session", "gnome-shell"):
+            self.assertNotIn(gone, txt.lower())
+
+    def test_boot_status_unit_stays_vm_only(self) -> None:
+        unit = (AIROOTFS / "etc/systemd/system/anitails-virtio-boot-status.service").read_text(
+            encoding="utf-8"
+        )
+        # The reporter must never run outside a VM / the CI harness.
+        self.assertIn("ConditionVirtualization=vm", unit)
+
+    def test_ci_boot_harness_no_longer_waits_for_gdm(self) -> None:
+        txt = self._code_only((REPO_ROOT / "scripts/ci-boot-test-iso.sh").read_text(encoding="utf-8"))
+        for gone in ("gdm", "gnome-shell", "gnome-session"):
+            self.assertNotIn(gone, txt.lower())
+
+    def test_xserverrc_is_seeded_and_pins_the_autologin_vt(self) -> None:
+        xserverrc = VENDOR / "Configs/.xserverrc"
+        self.assertTrue(xserverrc.is_file(), "Configs/.xserverrc must be seeded to $HOME")
+        self.assertTrue(os.access(xserverrc, os.X_OK), "startx runs ~/.xserverrc directly")
+        txt = xserverrc.read_text(encoding="utf-8")
+        # Rootless Xorg has to stay on the VT pam_systemd handed to the autologin.
+        self.assertIn("vt${XDG_VTNR:-1}", txt)
+        self.assertIn("-nolisten tcp", txt)
+
+    def test_i3_config_has_no_invalid_directives_or_duplicate_bindings(self) -> None:
+        txt = self._code_only((VENDOR / "Configs/.config/i3/config").read_text(encoding="utf-8"))
+        for invalid in (
+            "workspace_layouts",                        # i3: workspace_layout
+            "exit i3",                                  # i3: exit takes no argument
+            "move container to workspace to the left",  # not an i3 command
+        ):
+            self.assertNotIn(invalid, txt)
+        keys = [ln.split()[1] for ln in txt.splitlines() if ln.startswith("bindsym ")]
+        duplicates = sorted({k for k in keys if keys.count(k) > 1})
+        self.assertEqual(duplicates, [], f"duplicate bindsym key sequences: {duplicates}")
 
 
 class TestI3Seeder(unittest.TestCase):

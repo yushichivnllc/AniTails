@@ -95,7 +95,7 @@ Do đó, AniTails thiết kế **4 Profile build độc lập** (`./scripts/buil
   - Nếu **IOMMU tắt trong BIOS**: **từ chối mở `thunderbolt`** và ghi rõ cảnh báo bảo mật thay vì đánh đổi an toàn DMA.
 
 ### 5.3. Chính Sách Xorg Mặc Định (Thay Thế Wayland)
-- **i3-gaps trên Xorg/X11** là phiên hiển thị **duy nhất** trên AniTails kể từ bản chuyển sang stack i3-gaps (`xorg-server` + `i3-gaps` + `waybar` + `wofi` + `dunst` + `kitty`, không có display manager/GDM). Xem [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md).
+- **i3-gaps trên Xorg/X11** là phiên hiển thị **duy nhất** trên AniTails kể từ bản chuyển sang stack i3-gaps (`xorg-server` + `i3-gaps` + `i3bar`/`anitails-i3status` + `wofi` + `dunst` + `kitty`, không có display manager/GDM). Xem [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md).
 - **Rủi ro của X11 (Xorg):** Kiến trúc X11 cho phép một ứng dụng bất kỳ đọc phím gõ (`XQueryKeymap`/`XInput2`) hoặc chụp màn hình của cửa sổ khác. AniTails **chấp nhận rủi ro này** theo quyết định chủ repo để giảm kích thước ISO và đơn giản hóa luồng phiên (không Wayland/uwsm/display manager); mọi màn hình đều chạy trong danh sách ứng dụng được duyệt.
 - **Safe Graphics Fallback** (`simpledrm` + `llvmpipe`, `LIBGL_ALWAYS_SOFTWARE=1`) vẫn hoạt động trên Xorg: phiên i3-gaps hiển thị ở chế độ "chỉ hiển thị cơ bản" cho phần cứng rủi ro.
 
@@ -130,7 +130,7 @@ Do đó, AniTails thiết kế **4 Profile build độc lập** (`./scripts/buil
    - **Rủi ro tồn dư trung thực:** Để triệt tiêu hoàn toàn hiện tượng lưu ảnh điện tích trên chip nhớ VRAM rời đối với kẻ tấn công vật lý tại chỗ (cold-boot trên GPU), người dùng phải **tắt nguồn vật lý hoàn toàn (cold power-off)** thay vì chỉ khởi động lại ấm (warm reboot).
 2. **Chống lộ định danh phần cứng (GPU UUID, Serial Number & Tor Browser Fingerprinting):**
    - `anitails-gpu-detect`, `anitails-gpu-select` và `anitails-cuda-check` tự động lọc bỏ mọi chuỗi `GPU-<UUID>`, `MIG-<UUID>`, số serial bo mạch (`Serial Number`) và địa chỉ MAC trước khi xuất chẩn đoán.
-   - Trình khởi chạy `/usr/local/bin/anitails-tor-browser` dùng `--dev /dev` của `bubblewrap` (chỉ tạo thiết bị ảo tối thiểu `null/zero/urandom/tty`), **không gắn `/dev/nvidia*` hay `/dev/dri/renderD*` vào bên trong container Tor Browser**, đồng thời giữ nguyên cấu hình chống vân tay trình duyệt của Tor Browser `16.0` (không bật ép WebGL phần cứng).
+   - Trình khởi chạy `/usr/local/bin/anitails-tor-browser` dùng `--dev /dev` của `bubblewrap` (chỉ tạo thiết bị ảo tối thiểu `null/zero/urandom/tty`), **không gắn `/dev/nvidia*` hay `/dev/dri/renderD*` vào bên trong container Tor Browser**, đồng thời giữ nguyên cấu hình chống vân tay trình duyệt của Tor Browser `16.0.1` (không bật ép WebGL phần cứng).
 3. **Không đánh đổi Hardening Nhân:**
    - Mọi mục khởi động trên BIOS và UEFI đều giữ nguyên `lsm=landlock,lockdown,yama,integrity,apparmor,bpf lockdown=integrity module.sig_enforce=1`, `CONFIG_X86_KERNEL_IBT=y` và `CONFIG_INTEL_IOMMU_DEFAULT_ON=y`. Các module `nvidia-open-anitails` và `nvidia-580xx-anitails` bắt buộc phải được ký X.509 bằng khóa build-time của nhân (`sign-file sha512`) trước khi đóng gói SquashFS.
 
