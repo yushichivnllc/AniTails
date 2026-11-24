@@ -259,6 +259,20 @@ pacman-key --populate archlinux
 # the locally built `[anitails-local]` packages then link against exactly the
 # glibc/openssl that `mkarchiso` installs into the ISO, so there is no
 # partial-upgrade ABI mismatch and the snapshot stays byte-for-byte reproducible.
+# The rolling image also ships the `openssl-3` compatibility package, whose
+# files (/usr/lib/libcrypto.so.3, /usr/lib/libssl.so.3) are the very same paths
+# the pinned snapshot's own `openssl` 3.x package installs. Downgrading then
+# aborts with
+#   error: failed to commit transaction (conflicting files)
+#   openssl: /usr/lib/libcrypto.so.3 exists in filesystem (owned by openssl-3)
+# Nothing in the builder links libcrypto.so.3 any more (pacman/sudo/libarchive/
+# cryptsetup all require libcrypto.so=4-64 in the image, and the snapshot's
+# `openssl` restores the soname-3 files inside the same transaction), so drop
+# the compat package first with -dd.
+if pacman -Q openssl-3 >/dev/null 2>&1; then
+    echo "[snapshot] Dropping the image's 'openssl-3' compat package so the pinned snapshot's openssl can be installed..."
+    pacman -Rdd --noconfirm openssl-3
+fi
 for attempt in 1 2 3 4; do
     rm -f /var/cache/pacman/pkg/*.part
     if pacman -Syyuu --noconfirm --needed \
