@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""
+AniTails — i3bar status command (`anitails-i3status`).
+
+Why this exists
+---------------
+The AniTails desktop is **Xorg + i3-gaps**. Waybar cannot draw there: since 0.11
+it renders exclusively through `gtk-layer-shell`, whose `gtk_layer_is_supported()`
+is `if (!GDK_IS_WAYLAND_DISPLAY(gdk_display_get_default())) return FALSE;`. Under
+Xorg `gtk_layer_init_for_window()` falls back to a plain GTK toplevel, so Waybar
+turns into a stray window that i3 tiles across the screen instead of a bar.
+
+i3bar ships with i3 itself, so the session gets a real bar with zero extra
+packages, and this script feeds it the same security-posture banner Waybar used
+to show: Tor ●/○, firewall, LUKS persistence, RAM-wipe arming and a clock.
+
+Protocol
+--------
+i3bar's stdin JSON protocol: a first line `{"version": 1}` (optionally with
+`click_events`), then `[`, then one array of blocks per refresh, each followed by
+`,`. Blocks are plain i3bar objects (`full_text`, `color`, `name`, `tooltip`).
+
+Usage
+-----
+  anitails-i3status                 # stream forever (used as status_command)
+  anitails-i3status --once          # print one frame and exit (used by tests)
+  anitails-i3status --interval 10
+  anitails-i3status --posture-cmd /path/to/anitails-posture
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+
+DEFAULT_POSTURE_CMD = "/usr/local/bin/anitails-posture"
+POSTURE_TIMEOUT = 3.0
+
+# Midnight Aurora palette (matches Configs/.config/i3/config + waybar/style.css)
+CYAN = "#38bdf8"
+MUTED = "#7c84a0"
+WARN = "#fbbf24"
+BAD = "#f87171"
+TEXT = "#eef1f8"
+
+WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def read_posture(posture_cmd: str) -> dict[str, str]:
+    """Run `anitails-posture --json`; never raise, never block the bar."""
+    fallback = {
+        "tor": "unknown",
+        "firewall": "unknown",
+        "persistence": "unknown",
+        "ram_wipe": "unknown",
+        "release": "unknown",
+    }
+    try:
+        result = subprocess.run(
+            [posture_cmd, "--json"],
+            capture_output=True, text=True, timeout=POSTURE_TIMEOUT, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return fallback
+    if result.returncode != 0:
+        return fallback
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return fallback
+    if not isinstance(payload, dict):
+        return fallback
+    merged = dict(fallback)
+    for key in merged:
+        value = payload.get(key)
+        if isinstance(value, str) and value:
+            merged[key] = value
+    return merged
+
+
+def block(full_text: str, color: str, name: str, tooltip: str = "") -> dict:
+    payload = {"name": name, "full_text": full_text, "color": color}
+    if tooltip:
+        payload["tooltip"] = tooltip
+    return payload
+
+
+def tor_block(posture: dict[str, str]) -> dict:
+    connected = posture["tor"] == "connected"
+    text = "Tor ●" if connected else "Tor ○"
+    tooltip = (
+        f"Tor: {posture['tor']}\n"
+        f"Firewall: {posture['firewall']}\n"
+        f"Persistence: {posture['persistence']}\n"
+        f"RAM wipe: {posture['ram_wipe']}\n"
+        f"{posture['release']}"
+    )
+    if not connected:
+        tooltip += "\nRun anitails-tor-connect to bootstrap Tor."
+    return block(text, CYAN if connected else WARN, "posture", tooltip)
+
+
+def firewall_block(posture: dict[str, str]) -> dict:
+    enforced = posture["firewall"] == "enforced"
+    text = "fw ✓" if enforced else "fw ?"
+    return block(text, CYAN if enforced else WARN, "firewall",
+                 f"nftables inet anitails_filter: {posture['firewall']}")
+
+
+def persistence_block(posture: dict[str, str]) -> dict:
+    unlocked = posture["persistence"] == "unlocked"
+    text = "LUKS ●" if unlocked else "LUKS ○"
+    return block(text, CYAN if unlocked else MUTED, "persistence",
+                 f"Persistence volume: {posture['persistence']}")
+
+
+def ramwipe_block(posture: dict[str, str]) -> dict:
+    armed = posture["ram_wipe"] == "armed"
+    return block("RAM ✓" if armed else "RAM ○", CYAN if armed else MUTED, "ramwipe",
+                 f"Shutdown memory wipe: {posture['ram_wipe']}")
+
+
+def clock_block(now: time.struct_time | None = None) -> dict:
+    moment = now or time.localtime()
+    text = (f"{moment.tm_hour:02d}:{moment.tm_min:02d}  "
+            f"{WEEKDAYS[moment.tm_wday]} {moment.tm_mday:02d} {MONTHS[moment.tm_mon - 1]}")
+    return block(text, TEXT, "clock", time.strftime("%Y-%m-%d %H:%M", moment))
+
+
+def frame(posture: dict[str, str]) -> list[dict]:
+    return [
+        tor_block(posture),
+        firewall_block(posture),
+        persistence_block(posture),
+        ramwipe_block(posture),
+        clock_block(),
+    ]
+
+
+def emit(payload: str) -> None:
+    sys.stdout.write(payload)
+    sys.stdout.flush()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="AniTails i3bar status command")
+    parser.add_argument("--once", action="store_true",
+                        help="print a single frame, close the array and exit")
+    parser.add_argument("--interval", type=float, default=5.0,
+                        help="seconds between refreshes (default: 5)")
+    parser.add_argument("--posture-cmd", default=DEFAULT_POSTURE_CMD,
+                        help="path to anitails-posture (default: %(default)s)")
+    args = parser.parse_args()
+
+    interval = max(1.0, args.interval)
+
+    def _terminate(_signum, _frame_) -> None:  # SIGTERM from i3 on reload/exit
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, _terminate)
+
+    emit('{"version": 1, "click_events": false}\n[\n')
+
+    if args.once:
+        emit(json.dumps(frame(read_posture(args.posture_cmd)), ensure_ascii=False) + "\n]\n")
+        return 0
+
+    # Streaming mode: every frame must end with a comma, the array is never closed
+    # because i3bar keeps reading until the process exits.
+    try:
+        while True:
+            blocks = frame(read_posture(args.posture_cmd))
+            emit(json.dumps(blocks, ensure_ascii=False) + ",\n")
+            time.sleep(interval)
+    except (BrokenPipeError, KeyboardInterrupt, SystemExit):
+        return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

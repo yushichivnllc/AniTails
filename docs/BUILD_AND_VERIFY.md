@@ -27,7 +27,7 @@ Bộ kiểm thử tự động trong `tests/` có thể chạy ngay trên bất 
 python3 tests/run_all_tests.py
 ```
 
-- Toàn bộ 19 bài kiểm thử thực thi (13 bài P0 bảo mật nền tảng: eMudhra + Sectigo `AAA` cross-sign, tường lửa `nftables` + cách ly luồng Tor + cảm biến rò rỉ, giả mạo MAC fail-closed, `onion-grater`, LUKS2 Argon2id, C11 `anitails-udev-watchdog`, chống giả mạo SBOM/ISO; cùng 6 bộ kiểm thử NVIDIA: nhận diện 1,558 PCI+subsystem ID qua 14 thế hệ, điều phối driver không xung đột, từ chối module chưa ký/lệch ABI/thiếu GSP, Optimus/eGPU IOMMU gate, kiểm tra Compute Capability `SM` của CUDA, ẩn GPU UUID/Serial & cách ly Tor Browser `bwrap`) phải đạt **`OK (66/66)`** (22 bài P0/NVIDIA + 23 bài i3-gaps + 21 bài lint ngữ pháp i3).
+- Toàn bộ 19 bài kiểm thử thực thi (13 bài P0 bảo mật nền tảng: eMudhra + Sectigo `AAA` cross-sign, tường lửa `nftables` + cách ly luồng Tor + cảm biến rò rỉ, giả mạo MAC fail-closed, `onion-grater`, LUKS2 Argon2id, C11 `anitails-udev-watchdog`, chống giả mạo SBOM/ISO; cùng 6 bộ kiểm thử NVIDIA: nhận diện 1,558 PCI+subsystem ID qua 14 thế hệ, điều phối driver không xung đột, từ chối module chưa ký/lệch ABI/thiếu GSP, Optimus/eGPU IOMMU gate, kiểm tra Compute Capability `SM` của CUDA, ẩn GPU UUID/Serial & cách ly Tor Browser `bwrap`) phải đạt **`OK (76/76)`** (22 bài P0/NVIDIA + 23 bài i3-gaps + 21 bài lint ngữ pháp i3 + 10 bài i3bar/`anitails-i3status`).
 
 ---
 
@@ -50,6 +50,7 @@ python3 scripts/sync-i3-dotfiles.py            # regenerate manifest + UPSTREAM.
 python3 scripts/lint-i3-config.py              # PASS: i3 config is valid (0 problems)
 python3 -m unittest tests.test_i3_dotfiles -v  # 23 test
 python3 -m unittest tests.test_i3_config -v    # 21 test
+python3 -m unittest tests.test_i3_bar -v       # 10 test
 ```
 
 `scripts/lint-i3-config.py` là cổng **bắt buộc** sau mỗi lần sửa `Configs/.config/i3/config`:

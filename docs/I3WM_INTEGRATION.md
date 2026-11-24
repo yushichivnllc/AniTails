@@ -59,7 +59,7 @@ Hyprland + AniDE/HyDE nặng (~123K dòng vendor, 485 tệp, commit ghim, manife
 | Nhóm | Gói |
 |---|---|
 | Compositor & phiên | `xorg-server`, `xorg-xinit`, `xorg-xauth`, `xorg-xrdb`, `xorg-xsetroot`, `xorg-xrandr`, `libxcursor`, `i3-gaps`, `polkit` |
-| Shell desktop | `waybar`, `wofi`, `dunst`, `libnotify`, `cliphist`, `scrot`, `feh` |
+| Shell desktop | `i3bar` (đi kèm `i3`) + `anitails-i3status`, `wofi`, `dunst`, `libnotify`, `cliphist`, `scrot`, `feh` (gói `waybar` vẫn cài nhưng **không** chạy trên Xorg — xem §3.3) |
 | Terminals/Files/Media | `kitty`, `dolphin`, `ark`, `kde-cli-tools`, `ffmpegthumbs`, `qt5-imageformats`, `kimageformats`, `kate`, `mpv`, `celluloid`, `imv`, `zathura`, `zathura-pdf-mupdf`, `qalculate-qt`, `vim`, `fzf` |
 | Theming | `gtk3`, `gtk4`, `qt5ct`, `qt6ct`, `nwg-look`, `adwaita-icon-theme`, `capitaine-cursors`, `xsettingsd` |
 | Bảo vệ quyền riêng tư | `ibus`, `ibus-unikey`, `keepassxc`, `mat2`, `electrum`, `thunderbird`, `onionshare` |
@@ -70,13 +70,47 @@ Hyprland + AniDE/HyDE nặng (~123K dòng vendor, 485 tệp, commit ghim, manife
 |---|---|
 | `archiso/airootfs/usr/share/anitails/i3/` | 10 tệp design (`Configs/`) + `MANIFEST.sha256` + `UPSTREAM.json` |
 | `archiso/airootfs/usr/local/lib/anitails-i3-seed` | Seeder offline, fail-closed |
-| `archiso/airootfs/usr/local/lib/anitails-i3-bar.sh` | Khởi động waybar chính sách |
+| `archiso/airootfs/usr/local/bin/anitails-i3status` | `status_command` của i3bar: banner posture (Tor ●/○, fw, LUKS, RAM wipe) + đồng hồ, giao thức JSON của i3bar |
+| `archiso/airootfs/usr/local/lib/anitails-i3-bar.sh` | Launcher Waybar **chỉ cho phiên Wayland**; trên Xorg thoát `0` kèm thông báo |
 | `archiso/airootfs/usr/local/lib/anitails-i3-desktop/lockscreen-disabled.sh` | Thông báo tắt khóa (Tails-style) |
 | `archiso/airootfs/usr/local/bin/anitails-i3-session` | Launcher (`startx` → `i3-gaps`), fail-closed |
 | `archiso/airootfs/usr/local/bin/anitails-i3-doctor` | Báo cáo thành phần i3 + seed state |
 | `archiso/airootfs/usr/local/bin/anitails-screenshot` | Screenshot `scrot` + hộp thoại cảnh báo |
 | `archiso/airootfs/etc/X11/xinit/anitails-i3.sh` | Wrapper Xorg (client mà `startx` chạy) |
 | `Configs/.xserverrc` | `$HOME/.xserverrc` đã seed — ghim Xorg vào `vt$XDG_VTNR` để chạy **rootless** trên VT1 |
+
+### 3.3. Vì sao thanh trạng thái là i3bar, không phải Waybar
+
+Waybar từ **0.11** vẽ **duy nhất** qua `gtk-layer-shell` (`Require gtk-layer-shell`).
+Thư viện đó trả lời câu hỏi "có hỗ trợ không" bằng chính loại display:
+
+```c
+gboolean gtk_layer_is_supported () {
+    if (!GDK_IS_WAYLAND_DISPLAY (gdk_display_get_default ()))
+        return FALSE;
+    ...
+}
+```
+
+và khi bị gọi trên X11, `gtk_layer_init_for_window()` chỉ ghi
+*"Falling back to XDG shell instead of Layer Shell (surface should appear but layer features
+will not work)"* rồi để cửa sổ thành **toplevel GTK thường**. Với i3, hệ quả không phải "bar
+thiếu vài tính năng" mà là **một cửa sổ lạc bị xếp vào tile** ở mỗi lần đăng nhập — vừa xấu vừa
+chiếm chỗ, và không có strut nên cửa sổ khác bị đẩy xuống.
+
+Cách AniTails xử lý (không thêm gói nào — `i3bar` nằm trong gói `i3`):
+
+| Thành phần | Vai trò |
+|---|---|
+| `bar { mode dock; position top; status_command /usr/local/bin/anitails-i3status --interval 5 }` | i3bar vẽ thanh, workspace buttons + tray tắt (`tray_output none`) |
+| `anitails-i3status` | In header `{"version": 1}` rồi mỗi 5 s một frame block JSON: `posture`, `firewall`, `persistence`, `ramwipe`, `clock` |
+| `anitails-posture --json` | Nguồn dữ liệu posture (best-effort; lỗi → `unknown`, thanh không chết) |
+| `anitails-i3-bar.sh` | Chỉ chạy Waybar khi có `WAYLAND_DISPLAY`; ngoài Wayland thoát `0` + thông báo |
+| `SUPER+Shift+B` | `bar mode toggle` (ẩn/hiện thanh) |
+
+`i3bar` không nằm trong `MANIFEST.sha256` (chỉ `Configs/` mới được seed vào `$HOME`);
+`anitails-i3status` là script hệ thống tại `/usr/local/bin` và được kiểm thử bởi
+`tests/test_i3_bar.py` (10 bài, xem `docs/TEST_REPORT.md` §8).
 
 ---
 
@@ -93,7 +127,8 @@ Hyprland + AniDE/HyDE nặng (~123K dòng vendor, 485 tệp, commit ghim, manife
                   ├── feh --bg-fill ... (best-effort)
                   └── exec /usr/bin/i3
                        ├── exec_always xrdb -merge ~/.Xresources  (cursor capitaine-cursors, DPI 96)
-                       ├── exec_always anitails-i3-bar.sh       (waybar)
+                       ├── exec_always anitails-i3-bar.sh       (no-op on Xorg)
+                       ├── bar { status_command anitails-i3status }  (i3bar + posture)
                        └── exec_always dunst
 ```
 
@@ -125,13 +160,15 @@ Three UX/UI additions ship with this i3-gaps stack:
 
 | UX element | Implementation |
 |---|---|
-| **Security posture module** | `anitails-posture --inline` feeds a `custom/posture` waybar module (bottom-right, cyan→violet chip). Shows Tor ●/○ + tooltip with firewall/persistence/RAM-wipe/release verdict. `on-click` opens settings. |
+| **Security posture module** | `anitails-posture --json` feeds `anitails-i3status`, which renders a `posture` block in **i3bar** (`Tor ●`/`Tor ○`, plus `fw`/`LUKS`/`RAM` chips, cyan = healthy, amber/muted = not). The tooltip carries firewall/persistence/RAM-wipe/release verdict. The same `anitails-posture --inline` module is kept in `waybar/config.jsonc` for a future Wayland session. |
 | **Settings / posture surface** | SUPER+S → `anitails-settings` (kitty `--layout stacked`, dark chrome, kitty.conf decorations). Falls back to a console print if kitty is absent. `--json` mode for scripts. |
 | **Wallpaper** | `anitails-default.png` — Midnight Aurora gradient (cyan→violet over #0a0d16), 1376×768, generated for this design (NOT a stock AniTails/HyDE image). |
 
 - Design preview (AI-generated mock, **not** an actual screenshot of the live system): [`docs/assets/design-preview.png`](assets/design-preview.png)
 - Wallpaper replacement (file-in-place, no manifest change — wallpaper lives outside the `Configs/` tree).
-- Waybar custom/posture module: `custom/posture` in `waybar/config.jsonc` + `#custom-posture` rule in `style.css`.
+- i3bar posture blocks: `anitails-i3status` (`posture`, `firewall`, `persistence`, `ramwipe`, `clock`);
+  Waybar `custom/posture` (`waybar/config.jsonc` + `#custom-posture` in `style.css`) is Wayland-only fallback — see §3.3.
+- Bar toggle: `bindsym $mod+Shift+b bar mode toggle`.
 - i3 binding: `bindsym $mod+S exec /usr/local/bin/anitails-settings`.
 
 ## 6b. Trade-off & Quyết định

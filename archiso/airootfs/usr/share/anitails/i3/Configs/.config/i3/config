@@ -44,9 +44,35 @@ font pango:Cantarell 10
 workspace_layout default
 workspace_auto_back_and_forth yes
 
-# --- Bar: hidden (Waybar is started separately by the session wrapper) ----------
+# --- Bar: i3bar (built into i3) + anitails-i3status -----------------------------
+# Waybar is NOT used here: it draws exclusively through gtk-layer-shell, and
+# `gtk_layer_is_supported()` is FALSE on X11, so starting it under Xorg produced a
+# stray tiled GTK window instead of a bar. `anitails-i3-bar.sh` therefore no-ops
+# outside Wayland and this block draws the bar with the same posture banner
+# (Tor ●/○, firewall, LUKS, RAM wipe) via /usr/local/bin/anitails-i3status.
+# SUPER+Shift+B toggles it (`bar mode toggle`).
 bar {
-    mode hide
+    mode dock
+    position top
+    height 26
+    font pango:Cantarell 10
+    status_command /usr/local/bin/anitails-i3status --interval 5
+    workspace_buttons yes
+    strip_workspace_numbers no
+    tray_output none
+    colors {
+        background          #0a0d16
+        statusline          #eef1f8
+        separator           #1d2338
+        focused_background  #0e1220
+        focused_statusline  #38bdf8
+        focused_separator   #2a3150
+        focused_workspace   #38bdf8 #38bdf8 #0a0d16
+        active_workspace    #1d2338 #1d2338 #eef1f8
+        inactive_workspace  #0a0d16 #0a0d16 #7c84a0
+        urgent_workspace    #f87171 #f87171 #0a0d16
+        binding_mode        #38bdf8 #38bdf8 #0a0d16
+    }
 }
 
 # --- Cursor theme + status bar + notifications ---------------------------------
@@ -62,6 +88,8 @@ bindsym $mod+B exec $browser
 # Full-screen screenshot (scrot), macOS-style SUPER+SHIFT+4.
 bindsym $mod+Shift+4 exec $screenshot
 bindsym $mod+S exec /usr/local/bin/anitails-settings
+# Hide/show the i3bar (same key the Waybar launcher used to document).
+bindsym $mod+Shift+b bar mode toggle
 bindsym $mod+L exec $lockscr
 
 # --- Workspaces: 1..9 ------------------------------------------------------------

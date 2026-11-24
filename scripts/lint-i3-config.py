@@ -72,6 +72,13 @@ BAR_DIRECTIVES = {
     "padding", "colors",
 }
 
+#: `state BAR_COLORS:` keywords that take exactly one colour (the rest take
+#: `border background text`).
+BAR_SINGLE_COLOUR_CLASSES = {
+    "background", "statusline", "separator", "focused_background",
+    "focused_statusline", "focused_separator",
+}
+
 #: `state BAR_COLORS:` keywords.
 BAR_COLOR_CLASSES = {
     "background", "statusline", "separator", "focused_background",
@@ -132,7 +139,7 @@ COMMAND_RULES: tuple[tuple[str, str], ...] = (
     (r"^border (?:normal|pixel|none|toggle)(?: -?\d+)?$", "border <style> [<px>]"),
     (r"^sticky (?:enable|disable|toggle)$", "sticky <action>"),
     (r"^scratchpad show$", "scratchpad show"),
-    (r"^bar mode (?:dock|hide|invisible)$", "bar mode <mode>"),
+    (r"^bar mode (?:dock|hide|invisible|toggle)$", "bar mode <mode>"),
     (r"^move scratchpad$", "move scratchpad"),
     (r"^nop(?: .*)?$", "nop [<comment>]"),
 )
@@ -273,8 +280,19 @@ def lint(text: str) -> list[str]:
 
         if container == "colors":
             keyword = line.split(None, 1)[0]
+            values = line.split()[1:]
             if keyword not in BAR_COLOR_CLASSES:
                 problems.append(f"line {lineno}: unknown bar colour class {keyword!r}")
+            elif keyword in BAR_SINGLE_COLOUR_CLASSES and len(values) != 1:
+                problems.append(
+                    f"line {lineno}: bar colour `{keyword}` takes exactly one colour, "
+                    f"got {len(values)}"
+                )
+            elif keyword not in BAR_SINGLE_COLOUR_CLASSES and len(values) != 3:
+                problems.append(
+                    f"line {lineno}: bar colour `{keyword}` takes 3 colours "
+                    f"(border background text), got {len(values)}"
+                )
             continue
 
         if container == "mode":

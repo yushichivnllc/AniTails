@@ -95,7 +95,7 @@ Do đó, AniTails thiết kế **4 Profile build độc lập** (`./scripts/buil
   - Nếu **IOMMU tắt trong BIOS**: **từ chối mở `thunderbolt`** và ghi rõ cảnh báo bảo mật thay vì đánh đổi an toàn DMA.
 
 ### 5.3. Chính Sách Xorg Mặc Định (Thay Thế Wayland)
-- **i3-gaps trên Xorg/X11** là phiên hiển thị **duy nhất** trên AniTails kể từ bản chuyển sang stack i3-gaps (`xorg-server` + `i3-gaps` + `waybar` + `wofi` + `dunst` + `kitty`, không có display manager/GDM). Xem [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md).
+- **i3-gaps trên Xorg/X11** là phiên hiển thị **duy nhất** trên AniTails kể từ bản chuyển sang stack i3-gaps (`xorg-server` + `i3-gaps` + `i3bar`/`anitails-i3status` + `wofi` + `dunst` + `kitty`, không có display manager/GDM). Xem [`I3WM_INTEGRATION.md`](I3WM_INTEGRATION.md).
 - **Rủi ro của X11 (Xorg):** Kiến trúc X11 cho phép một ứng dụng bất kỳ đọc phím gõ (`XQueryKeymap`/`XInput2`) hoặc chụp màn hình của cửa sổ khác. AniTails **chấp nhận rủi ro này** theo quyết định chủ repo để giảm kích thước ISO và đơn giản hóa luồng phiên (không Wayland/uwsm/display manager); mọi màn hình đều chạy trong danh sách ứng dụng được duyệt.
 - **Safe Graphics Fallback** (`simpledrm` + `llvmpipe`, `LIBGL_ALWAYS_SOFTWARE=1`) vẫn hoạt động trên Xorg: phiên i3-gaps hiển thị ở chế độ "chỉ hiển thị cơ bản" cho phần cứng rủi ro.
 

@@ -23,7 +23,7 @@ has() {
     if command -v "$1" >/dev/null 2>&1; then row ok "$1" "$2"; else row no "$1" "$2"; fi
 }
 
-printf '\nAniTails desktop — i3-gaps + Waybar (Xorg)\n'
+printf '\nAniTails desktop — i3-gaps + i3bar (Xorg)\n'
 printf '============================================\n'
 
 printf '\nSession & compositor\n'
@@ -33,7 +33,10 @@ has i3-gaps "tiling window manager (i3-gaps fork)"
 has i3 "i3-gaps compatibility shim"
 
 printf '\nDesktop shell\n'
-has waybar "status bar (AniTails config)"
+# i3bar ships with i3; Waybar is not usable here (gtk-layer-shell is Wayland-only).
+has i3bar "status bar (ships with i3)"
+has anitails-i3status "i3bar status command (posture banner)"
+has waybar "Waybar (present, but Wayland-only — not started on Xorg)"
 has dunst "notifications"
 has wofi "launcher / menus"
 has kitty "terminal"

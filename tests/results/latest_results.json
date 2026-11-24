@@ -1,8 +1,8 @@
 {
   "executed_at_utc": "2026-11-24",
-  "duration_seconds": 10.721,
-  "unit_and_simulation_tests_total": 66,
-  "unit_and_simulation_tests_passed": 66,
+  "duration_seconds": 10.173,
+  "unit_and_simulation_tests_total": 76,
+  "unit_and_simulation_tests_passed": 76,
   "unit_and_simulation_tests_failed": 0,
   "environment_gates": [
     {

@@ -98,7 +98,7 @@ AniTails **không còn GNOME**: GDM, GNOME Shell, `dconf`, Nautilus, Loupe, Pape
 | Compositor | `i3-gaps` (Xorg/X11) |
 | Quản lý phiên | `startx` (`xinit`) → wrapper `/etc/X11/xinit/anitails-i3.sh` (xsetroot + feh + i3) |
 | Dotfiles | Do AniTails viết toàn bộ (`GPL-3.0-or-later`), vendor tại `/usr/share/anitails/i3/`, ghim commit + SHA-256 từng tệp, seed offline bằng `anitails-i3-seed` |
-| Thanh trạng thái | `waybar` (Midnight Aurora, glassy + rounded) — điều khiển bởi `anitails-i3-bar.sh` |
+| Thanh trạng thái | `i3bar` (đi kèm `i3`) + `anitails-i3status` (banner posture, Midnight Aurora) — Waybar chỉ dùng cho phiên Wayland vì `gtk-layer-shell` không hỗ trợ X11 |
 | Launcher / thông báo | `wofi` (drun), `dunst` |
 | Khóa / idle | Không khóa: `amnesia` không có mật khẩu, `lockscreen-disabled.sh` ghi chú |
 | Ảnh nền / screenshot | `feh --bg-fill` + `anitails-screenshot` (`scrot` + hộp thoại cảnh báo) |
