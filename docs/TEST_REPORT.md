@@ -12,7 +12,7 @@
 
 > ### TRẠNG THÁI: **CHƯA ĐỦ ĐIỀU KIỆN PHÁT HÀNH CHÍNH THỨC (`NOT READY FOR PRODUCTION RELEASE`)**
 >
-> - **37 / 37 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm 22 bài cũ: 13 bài P0 bảo mật cốt lõi + 6 bài NVIDIA đa thế hệ + 3 bộ kiểm thử kiểm soát gói/profile, và 15 bài i3-gaps thay thế 17 bài Hyprland cũ). Không có bài kiểm thử thực thi nào thất bại (`0 FAIL`).
+> - **66 / 66 (100%) bộ kiểm thử tự động thực thi trực tiếp trong sandbox đã ĐẠT (`PASS`)** (gồm 22 bài cũ: 13 bài P0 bảo mật cốt lõi + 6 bài NVIDIA đa thế hệ + 3 bộ kiểm thử kiểm soát gói/profile; 23 bài i3-gaps trong `tests/test_i3_dotfiles.py` thay thế 17 bài Hyprland cũ; và 21 bài lint ngữ pháp cấu hình i3 trong `tests/test_i3_config.py`). Không có bài kiểm thử thực thi nào thất bại (`0 FAIL`).
 > - Tuy nhiên, có **7 cổng kiểm định ở trạng thái `BLOCKED` và 2 cổng ở trạng thái `SKIPPED`** do giới hạn khách quan của môi trường container (không có `CONFIG_NF_TABLES`, không có `mkarchiso`/`makepkg`/`qemu-system-x86_64`, không có khóa HSM ngoài, và **không có GPU NVIDIA vật lý `0x10de` hay PCIe passthrough** — lưu ý GPU ảo của QEMU **không** chứng minh được tương thích phần cứng NVIDIA thật).
 > - Theo đúng nguyên tắc trung thực kỹ thuật, hệ thống **chưa được phép công bố là bản phát hành sẵn sàng sử dụng thực địa** cho đến khi cả 5 cổng `P0` nêu trên được thực thi và đạt `PASS` trên máy trạm build Arch Linux chuyên dụng.
 > - Desktop mới (i3-gaps/Xorg) **chưa được khởi động thực tế** trong sandbox: cổng `GATE-QEMU-BOOT-BIOS-UEFI` vẫn `BLOCKED`, nên mọi kết luận về giao diện chỉ dựa trên kiểm thử tĩnh + seeder chạy thật (xem Mục 4).
@@ -175,3 +175,38 @@ Ngoài ra `test_packages_drop_hyprland_and_keep_i3_stack` chốt danh sách gói
 `bibata-cursor-theme`, `python-pulsectl` (không tồn tại trên Arch / chỉ có trên AUR) bị cấm,
 `libxcursor` + `capitaine-cursors` (đều thuộc `[extra]`) phải có mặt — đây chính là nguyên nhân
 `pacstrap` báo `error: target not found` trong lần build ISO trước.
+
+## 7. Lint Ngữ Pháp Cấu Hình i3 (`tests/test_i3_config.py`, 21 bài — `2026-11-22`)
+
+`i3` **không** dừng lại khi cấu hình sai: chỉ thị không phân tích được thì nó bật `i3-nagbar`
+("You have an error in your i3 config file!"), còn lệnh binding sai thì **thất bại im lặng**
+lúc bấm phím. Cổng khởi động QEMU chỉ chứng minh `i3` *đang chạy*, nên hai lớp lỗi trên hoàn toàn
+lọt qua CI. `scripts/lint-i3-config.py` đối chiếu cấu hình với chính ngữ pháp của i3
+(`parser-specs/config.spec`, `parser-specs/commands.spec`, `src/con.c`, `src/config_directives.c`)
+và **thoát khác 0** khi có sai lệch; `tests/test_i3_config.py` chạy nó trên cây cấu hình đang
+phát hành **và** trên các cấu hình cố tình viết sai (để bài lint không thể "rỗng ruột").
+
+| Mã | Nội dung | Trạng thái |
+|---|---|---|
+| **L-01** | Cấu hình i3 đang phát hành: `lint()` trả về **0 vấn đề** và CLI thoát `0` | **`PASS`** |
+| **L-02** | `kill` chỉ nhận `[window\|client]`: `kill focused window` bị từ chối, `kill` / `kill window` được chấp nhận | **`PASS`** |
+| **L-03** | `smart_borders` + `hide_edge_borders` bị từ chối (i3 log *"Both hide_edge_borders and smart_borders was used. Ignoring smart_borders as it is deprecated."* rồi bỏ `smart_borders`) | **`PASS`** |
+| **L-04** | `workspace_layout` chỉ nhận `default\|stacking\|stacked\|tabbed`; `workspace_layouts`, `splitv`… bị từ chối | **`PASS`** |
+| **L-05** | Token của `layout toggle` phải thuộc `{split, splitv, splith, stacking, stacked, tabbed, all, default}`; danh sách 2 và 3 chế độ hợp lệ đều được chấp nhận | **`PASS`** |
+| **L-06** | `bindsym` trùng phím (sau khi mở `$mod` → `Mod4`) bị phát hiện; modifier lạ (`Hyper`) và biến chưa `set` bị từ chối | **`PASS`** |
+| **L-07** | `client.*` phải có đúng 5 màu (`border background text indicator child_border`); 4 màu bị từ chối | **`PASS`** |
+| **L-08** | Khối `bar { … }`: `mode` chỉ nhận `dock\|hide\|invisible`, khoá lạ trong `bar` bị từ chối, khối không đóng bị từ chối | **`PASS`** |
+| **L-09** | `gaps inner` thiếu pixel, `default_border pixel` thiếu độ rộng, `resize grow width` thiếu `px` đều bị từ chối | **`PASS`** |
+
+Hai lỗi thật đã được sửa trong lần này (xem `docs/I3WM_INTEGRATION.md` §7):
+
+* `bindsym $mod+d kill focused window` → **`bindsym $mod+d kill`** — `kill` không có tham số
+  "focused", nên phím đóng cửa sổ trước đây **không làm gì cả**.
+* `hide_edge_borders vertical` + `smart_borders on` → **`hide_edge_borders smart`** — i3 bỏ
+  `smart_borders` (deprecated) và ghi cảnh báo; `smart` giữ đúng ý định "ẩn viền khi chỉ có một
+  cửa sổ" mà không sinh log.
+
+**Kết luận Mục 7:** cả 21 bài đạt `PASS`; cấu hình i3 hiện không còn chỉ thị/lệnh binding nào
+sai ngữ pháp. Phần **chưa chứng minh được** vẫn là hành vi đồ hoạ thật (bar, phím tắt) — việc đó
+chỉ đóng lại được bằng `GATE-QEMU-BOOT-BIOS-UEFI` (vẫn `BLOCKED` trong sandbox) trên máy build
+Arch Linux thật.

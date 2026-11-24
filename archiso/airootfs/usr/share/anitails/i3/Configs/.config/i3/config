@@ -19,11 +19,14 @@ set $lockscr /usr/local/lib/anitails-i3-desktop/lockscreen-disabled.sh
 
 # --- Geometry -------------------------------------------------------------------
 default_border pixel 2
-hide_edge_borders vertical
+# `smart` hides the edge border when a workspace holds a single window — that is
+# what `smart_borders on` used to express. Do NOT add `smart_borders` back: i3
+# logs "Both hide_edge_borders and smart_borders was used. Ignoring smart_borders
+# as it is deprecated." and silently drops it.
+hide_edge_borders smart
 smart_gaps on
 gaps inner 6
 gaps outer 6
-smart_borders on
 
 # --- Midnight Aurora palette (see docs/I3WM_INTEGRATION.md) ----------------------
 client.focused    #38bdf8 #0e1220 #eef1f8 #38bdf8 #0a0d16
@@ -93,7 +96,7 @@ bindsym $mod+k focus up
 # `workspace <name>|number <n>|next|prev|...` after `to workspace`.
 bindsym $mod+Shift+Left move left
 bindsym $mod+Shift+Right move right
-bindsym $mod+d kill focused window
+bindsym $mod+d kill
 
 # --- Layouts / fullscreen / float ----------------------------------------------------
 bindsym $mod+t layout toggle splitv stacking tabbed

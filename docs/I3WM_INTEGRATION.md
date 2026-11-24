@@ -152,6 +152,37 @@ PR/commit message). Xem mục §2.4b trong `SECURITY_LIMITATIONS.md`.
 
 ## 7. Gỡ lỗi
 
+### 7.1. Cấu hình i3 sai mà không làm ISO "đỏ"
+
+`i3` cố tình chạy tiếp với cấu hình lỗi: lỗi ngữ pháp → `i3-nagbar` ("You have an error in
+your i3 config file!"), lệnh binding sai → thất bại im lặng khi bấm phím. Vì vậy mọi thay đổi
+`Configs/.config/i3/config` phải qua lint trước khi commit:
+
+```bash
+python3 scripts/lint-i3-config.py    # exit 0 = không còn lỗi; exit 1 = in từng dòng lỗi
+python3 -m unittest tests.test_i3_config -v
+```
+
+Hai lỗi đã sửa (`2026-11-22`):
+
+| Dòng cũ | Lỗi i3 | Dòng mới |
+|---|---|---|
+| `bindsym $mod+d kill focused window` | `kill` chỉ nhận `[window\|client]`; lệnh sai nên **phím đóng cửa sổ không có tác dụng** | `bindsym $mod+d kill` |
+| `hide_edge_borders vertical` + `smart_borders on` | `smart_borders` đã deprecated và bị bỏ kèm cảnh báo *"Both hide_edge_borders and smart_borders was used. Ignoring smart_borders as it is deprecated."* | `hide_edge_borders smart` (giữ đúng ý định ẩn viền khi chỉ một cửa sổ) |
+
+Bảng ngữ pháp thường dùng (đã đối chiếu `parser-specs/`):
+
+| Chỉ thị | Giá trị hợp lệ |
+|---|---|
+| `workspace_layout` | `default`, `stacking`, `stacked`, `tabbed` (**không** có `splitv`) |
+| `hide_edge_borders` | `none`, `vertical`, `horizontal`, `both`, `smart`, `smart_no_gaps` |
+| `smart_borders` | `on`/`no_gaps` — **đừng dùng cùng** `hide_edge_borders` (bị bỏ, sinh log) |
+| `gaps` | `inner\|outer\|horizontal\|vertical\|top\|right\|bottom\|left <n>px` |
+| `layout toggle` | danh sách các mode trong `{split, splitv, splith, stacking, stacked, tabbed, all, default}` |
+| `kill` | không tham số, hoặc `kill window` / `kill client` |
+
+### 7.2. Các lệnh chẩn đoán
+
 ```bash
 # kiểm tra manifest i3 (không seed)
 sudo /usr/local/lib/anitails-i3-seed --check
