@@ -40,7 +40,7 @@ chroot bởi `anitails-alpm-finalize`, và ở mỗi lần đăng nhập bởi `
 
 ```bash
 python3 scripts/sync-i3-dotfiles.py --check
-# OK: 9 vendored dotfiles match MANIFEST.sha256
+# PASS: 10 file(s) verified against MANIFEST.sha256
 ```
 
 Nếu cần chỉnh sửa stack i3-gaps (thêm/bỏ tệp trong `Configs/`):
@@ -132,6 +132,14 @@ qemu-system-x86_64 -enable-kvm -m 4096 -smp 2 \
   -cdrom out/anitails-0.1.0-x86_64.iso -boot d \
   -netdev user,id=net0 -device virtio-net-pci,netdev=net0
 ```
+
+Cổng kiểm thử tự động trong CI (`scripts/ci-boot-test-iso.sh`) không đọc màn hình: nó chờ dòng
+`ANITAILS_OS_BOOT_READY` do `anitails-virtio-boot-status` phát ra qua `ttyS0` +
+`virtio-serial` (`org.anitails.status`). Dòng đó chỉ được phát khi **Xorg chạy rootless dưới
+`amnesia` + `i3` là window manager + `nft list table inet anitails_filter` thành công + netns
+`tbb` tồn tại**; thiếu một điều kiện thì cổng báo `ANITAILS_OS_BOOT_FAILED` kèm log
+`getty@tty1`/`Xorg.0.log`/`systemctl --failed`/`loginctl`. Không còn `gdm.service` hay
+`gnome-session` nào trong cổng này (đã gỡ cùng GNOME).
 
 Trong phiên Live trên QEMU, kiểm tra thêm:
 - `cat /sys/kernel/security/lsm` -> phải chứa `apparmor`.

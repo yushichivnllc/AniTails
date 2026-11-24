@@ -37,7 +37,7 @@ Không một hệ điều hành nào là "bất khả xâm phạm". Tài liệu 
 
 ### 2.4b. Bề Mặt Cấu Hình Giao Diện (Stack i3-gaps tự viết)
 
-- AniTails chuyển từ GNOME sang **i3-gaps trên Xorg (X11)** — toàn bộ stack do AniTails viết (`docs/I3WM_INTEGRATION.md`). Đây là mã cấu hình **tự viết** (`GPL-3.0-or-later`, 9 tệp) chạy **dưới quyền người dùng `amnesia`**, không có tiến trình đồ họa nào chạy root (không display manager).
+- AniTails chuyển từ GNOME sang **i3-gaps trên Xorg (X11)** — toàn bộ stack do AniTails viết (`docs/I3WM_INTEGRATION.md`). Đây là mã cấu hình **tự viết** (`GPL-3.0-or-later`, 10 tệp) chạy **dưới quyền người dùng `amnesia`**, không có tiến trình đồ họa nào chạy root (không display manager).
 - Rủi ro tồn dư: một lỗi trong wrapper X11 (`anitails-i3.sh`), shell scripts (`anitails-i3-session`, `anitails-i3-bar.sh`, `anitails-screenshot`) hoặc cấu hình i3/Waybar có thể làm lộ dữ liệu **trong phạm vi `$HOME`** hoặc gây treo phiên. AniTails giảm thiểu bằng cách:
   1. Ghim SHA-256 từng tệp cấu hình; `anitails-i3-seed` từ chối seed nếu manifest sai lệch, và quá trình build chạy `sync-i3-dotfiles.py --check`.
   2. **Không** đóng gói binary bên thứ ba dựng sẵn (`hydectl`, `hyde-ipc`, Quickshell, ...) và **không** dùng gói AUR.

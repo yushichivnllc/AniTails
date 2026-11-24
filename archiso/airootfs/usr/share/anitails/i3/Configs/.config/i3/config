@@ -35,7 +35,10 @@ client.placeholder #1d2338 #161a2c #8b93ad #1d2338 #1d2338
 font pango:Cantarell 10
 
 # --- Workspaces ----------------------------------------------------------------
-workspace_layouts stacking splitv
+# i3 syntax: `workspace_layout <default|stacking|tabbed>` (singular, one value).
+# `workspace_layouts stacking splitv` is not an i3 directive and made i3 log
+# "Expected one of these tokens" + raise a config nagbar.
+workspace_layout default
 workspace_auto_back_and_forth yes
 
 # --- Bar: hidden (Waybar is started separately by the session wrapper) ----------
@@ -53,11 +56,14 @@ bindsym $mod+Return exec $terminal
 bindsym $mod+Shift+Return exec $explorer
 bindsym $mod+space exec $launcher --show drun
 bindsym $mod+B exec $browser
+# Full-screen screenshot (scrot), macOS-style SUPER+SHIFT+4.
 bindsym $mod+Shift+4 exec $screenshot
 bindsym $mod+S exec /usr/local/bin/anitails-settings
 bindsym $mod+L exec $lockscr
 
 # --- Workspaces: 1..9 ------------------------------------------------------------
+# SUPER+<n> switches, SUPER+CTRL+<n> moves the focused window there.
+# (SUPER+SHIFT+4 is the screenshot key, so window moves cannot use SHIFT.)
 bindsym $mod+1 workspace number 1
 bindsym $mod+2 workspace number 2
 bindsym $mod+3 workspace number 3
@@ -67,23 +73,26 @@ bindsym $mod+6 workspace number 6
 bindsym $mod+7 workspace number 7
 bindsym $mod+8 workspace number 8
 bindsym $mod+9 workspace number 9
-bindsym $mod+Shift+1 move container to workspace number 1
-bindsym $mod+Shift+2 move container to workspace number 2
-bindsym $mod+Shift+3 move container to workspace number 3
-bindsym $mod+Shift+4 move container to workspace number 4
-bindsym $mod+Shift+5 move container to workspace number 5
-bindsym $mod+Shift+6 move container to workspace number 6
-bindsym $mod+Shift+7 move container to workspace number 7
-bindsym $mod+Shift+8 move container to workspace number 8
-bindsym $mod+Shift+9 move container to workspace number 9
+bindsym $mod+Ctrl+1 move container to workspace number 1
+bindsym $mod+Ctrl+2 move container to workspace number 2
+bindsym $mod+Ctrl+3 move container to workspace number 3
+bindsym $mod+Ctrl+4 move container to workspace number 4
+bindsym $mod+Ctrl+5 move container to workspace number 5
+bindsym $mod+Ctrl+6 move container to workspace number 6
+bindsym $mod+Ctrl+7 move container to workspace number 7
+bindsym $mod+Ctrl+8 move container to workspace number 8
+bindsym $mod+Ctrl+9 move container to workspace number 9
 
 # --- Focus / move / kill -----------------------------------------------------------
 bindsym $mod+h focus left
 bindsym $mod+l focus right
 bindsym $mod+j focus down
 bindsym $mod+k focus up
-bindsym $mod+Shift+Left move container to workspace to the left
-bindsym $mod+Shift+Right move container to workspace to the right
+# `move left|right` moves the focused container inside its workspace. The old
+# `move container to workspace to the left` was a parse error: i3 expects
+# `workspace <name>|number <n>|next|prev|...` after `to workspace`.
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Right move right
 bindsym $mod+d kill focused window
 
 # --- Layouts / fullscreen / float ----------------------------------------------------
@@ -94,7 +103,7 @@ bindsym $mod+r mode "resize"
 
 # --- Session ------------------------------------------------------------------------
 bindsym $mod+Shift+c reload
-bindsym $mod+Shift+e exit i3
+bindsym $mod+Shift+e exit
 
 # --- Resize mode --------------------------------------------------------------------
 mode "resize" {

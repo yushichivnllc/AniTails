@@ -274,7 +274,7 @@ jobs:
             /tmp/anitails-ci-cache/pkgs
           key: anitails-pkgcache-v2-${{ matrix.profile }}-${{ hashFiles('pkgbuilds/**/PKGBUILD', 'pkgbuilds/linux-anitails/config.anitails.fragment', 'archiso/snapshot.lock.json') }}-${{ github.run_id }}
 
-      - name: Boot-test built ISO end-to-end in QEMU (Legacy BIOS + UEFI OVMF -> GDM amnesia session)
+      - name: Boot-test built ISO end-to-end in QEMU (Legacy BIOS + UEFI OVMF -> i3-gaps/Xorg amnesia session)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends qemu-system-x86 ovmf tesseract-ocr libarchive-tools

@@ -7,6 +7,15 @@
 #     or virtio port `org.anitails.status`) is present.
 #   - Strictly WRITE-ONLY: NEVER reads commands, stdin, or config from host.
 #   - NEVER emits hardware serial numbers, MAC addresses, or user data.
+#
+# SESSION MODEL (i3-gaps on Xorg, no display manager):
+#   getty@tty1 --autologin amnesia
+#     -> /etc/profile.d/99-anitails-session.sh
+#       -> anitails-i3-session (seeds the hash-pinned i3 design)
+#         -> startx -> /etc/X11/xinit/anitails-i3.sh -> /usr/bin/i3 on Xorg
+#   So "the desktop is up" means: an `amnesia` logind session exists, Xorg runs
+#   unprivileged as `amnesia`, and `i3` is its window manager. There is no
+#   gdm.service and no gnome-session to poll.
 set -euo pipefail
 
 has_harness_marker() {
@@ -59,26 +68,41 @@ emit_report() {
 emit_report "$(printf "ANITAILS_BOOT_HEARTBEAT stage=early kernel=%s uptime=%s" \
     "$(uname -r)" "$(awk '{print $1}' /proc/uptime 2>/dev/null || echo 0)")"
 
+# --- Probes -------------------------------------------------------------------
+# Xorg is started rootless through Xorg.wrap, so the server process is owned by
+# `amnesia` and its comm is `Xorg`. i3's comm is `i3` (it never forks a child).
+xorg_running() {
+    /usr/bin/pgrep -u amnesia -x Xorg >/dev/null 2>&1 \
+        || /usr/bin/pgrep -u amnesia -x X >/dev/null 2>&1
+}
+
+i3_running() {
+    /usr/bin/pgrep -u amnesia -x i3 >/dev/null 2>&1
+}
+
+amnesia_session() {
+    /usr/bin/loginctl list-sessions --no-legend 2>/dev/null | /usr/bin/grep -qw "amnesia"
+}
+
+xsetroot_seen() {
+    # The X session wrapper (anitails-i3.sh) runs xsetroot + feh before exec i3.
+    # If Xorg is up but i3 is not, this tells "X started, WM failed" apart from
+    # "X never started" (xsetroot is short-lived, so it is best-effort evidence).
+    /usr/bin/pgrep -u amnesia -x xsetroot >/dev/null 2>&1 && echo "xsetroot-seen" || echo "xsetroot-absent"
+}
+
 DEADLINE=$((SECONDS + 165))
 NEXT_PROGRESS=$((SECONDS + 10))
-GDM_OK="false"
 SESSION_OK="false"
+XORG_OK="false"
+I3_OK="false"
 FIREWALL_OK="false"
 NETNS_OK="false"
 
 while (( SECONDS < DEADLINE )); do
-    if /usr/bin/systemctl is-active --quiet gdm.service; then
-        GDM_OK="true"
-    else
-        GDM_OK="false"
-    fi
-
-    if /usr/bin/loginctl list-sessions --no-legend 2>/dev/null | grep -qw "amnesia" \
-       || /usr/bin/pgrep -u amnesia -f "gnome-session|gnome-shell" >/dev/null 2>&1; then
-        SESSION_OK="true"
-    else
-        SESSION_OK="false"
-    fi
+    if amnesia_session; then SESSION_OK="true"; else SESSION_OK="false"; fi
+    if xorg_running; then XORG_OK="true"; else XORG_OK="false"; fi
+    if i3_running; then I3_OK="true"; else I3_OK="false"; fi
 
     if /usr/bin/nft list table inet anitails_filter >/dev/null 2>&1; then
         FIREWALL_OK="true"
@@ -92,33 +116,43 @@ while (( SECONDS < DEADLINE )); do
         NETNS_OK="false"
     fi
 
-    if [[ "${GDM_OK}" == "true" && "${SESSION_OK}" == "true" && "${FIREWALL_OK}" == "true" && "${NETNS_OK}" == "true" ]]; then
-        # Hold 3 seconds to confirm no post-login service (udisks2 / media watchdog) powers off or crashes GDM
+    if [[ "${XORG_OK}" == "true" && "${I3_OK}" == "true" && "${FIREWALL_OK}" == "true" && "${NETNS_OK}" == "true" ]]; then
+        # Hold 3 seconds to confirm no post-login unit (udisks2 / media watchdog)
+        # powers off the machine or tears the session down right after i3 maps.
         sleep 3
-        if /usr/bin/systemctl is-active --quiet gdm.service \
-           && ( /usr/bin/loginctl list-sessions --no-legend 2>/dev/null | grep -qw "amnesia" \
-                || /usr/bin/pgrep -u amnesia -f "gnome-session|gnome-shell" >/dev/null 2>&1 ); then
+        if xorg_running && i3_running; then
             KVER="$(uname -r)"
             SYS_STATE="$(/usr/bin/systemctl is-system-running 2>/dev/null || true)"
-            emit_report "$(printf "ANITAILS_OS_BOOT_READY kernel=%s state=%s gdm=%s amnesia_session=%s firewall=%s netns=%s" \
-                "${KVER}" "${SYS_STATE}" "${GDM_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}")"
+            emit_report "$(printf "ANITAILS_OS_BOOT_READY kernel=%s state=%s xorg=%s i3=%s amnesia_session=%s firewall=%s netns=%s" \
+                "${KVER}" "${SYS_STATE}" "${XORG_OK}" "${I3_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}")"
             exit 0
         fi
     fi
 
     if (( SECONDS >= NEXT_PROGRESS )); then
         SYS_STATE="$(/usr/bin/systemctl is-system-running 2>/dev/null || true)"
-        emit_report "$(printf "ANITAILS_BOOT_PROGRESS sec=%d state=%s gdm=%s amnesia_session=%s firewall=%s netns=%s" \
-            "${SECONDS}" "${SYS_STATE}" "${GDM_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}")"
+        emit_report "$(printf "ANITAILS_BOOT_PROGRESS sec=%d state=%s xorg=%s i3=%s amnesia_session=%s firewall=%s netns=%s" \
+            "${SECONDS}" "${SYS_STATE}" "${XORG_OK}" "${I3_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}")"
         NEXT_PROGRESS=$((SECONDS + 10))
     fi
 
     sleep 1
 done
 
+XORG_LOG="$(ls -1 /home/amnesia/.local/share/xorg/Xorg.*.log 2>/dev/null | tail -n 1 || true)"
 FAIL_DUMP="$(
-    printf "ANITAILS_OS_BOOT_FAILED kernel=%s gdm=%s amnesia_session=%s firewall=%s netns=%s\n" \
-        "$(uname -r)" "${GDM_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}"
+    printf "ANITAILS_OS_BOOT_FAILED kernel=%s xorg=%s i3=%s amnesia_session=%s firewall=%s netns=%s\n" \
+        "$(uname -r)" "${XORG_OK}" "${I3_OK}" "${SESSION_OK}" "${FIREWALL_OK}" "${NETNS_OK}"
+    printf "=== probes ===\n"
+    printf "getty@tty1=%s  xorg_process=%s  i3_process=%s  %s\n" \
+        "$(/usr/bin/systemctl is-active getty@tty1.service 2>/dev/null || true)" \
+        "$(xorg_running && echo up || echo down)" \
+        "$(i3_running && echo up || echo down)" \
+        "$(xsetroot_seen)"
+    echo "=== /dev/dri ==="
+    ls -l /dev/dri 2>&1 || true
+    echo "=== pgrep -a -u amnesia (desktop processes) ==="
+    /usr/bin/pgrep -a -u amnesia 2>&1 | head -n 25 || true
     echo "=== systemctl list-jobs ==="
     /usr/bin/systemctl list-jobs --no-pager 2>&1 || true
     echo "=== systemctl --failed ==="
@@ -127,8 +161,18 @@ FAIL_DUMP="$(
     /usr/bin/loginctl list-sessions --no-pager 2>&1 || true
     echo "=== journalctl -b -p warning..emerg (last 40 lines) ==="
     /usr/bin/journalctl -b -p warning..emerg --no-pager -n 40 2>&1 || true
-    echo "=== journalctl -u gdm.service (last 35 lines) ==="
-    /usr/bin/journalctl -u gdm.service --no-pager -n 35 2>&1 || true
+    echo "=== journalctl -u getty@tty1.service (last 40 lines) ==="
+    /usr/bin/journalctl -u getty@tty1.service --no-pager -n 40 2>&1 || true
+    echo "=== journalctl _UID=1000 (last 25 lines) ==="
+    /usr/bin/journalctl _UID=1000 --no-pager -n 25 2>&1 || true
+    if [[ -n "${XORG_LOG}" ]]; then
+        echo "=== ${XORG_LOG} (last 60 lines) ==="
+        /usr/bin/tail -n 60 "${XORG_LOG}" 2>&1 || true
+    else
+        echo "=== no Xorg log under /home/amnesia/.local/share/xorg ==="
+    fi
+    echo "=== /home/amnesia/.local/state/anitails/i3-seed.json ==="
+    /usr/bin/cat /home/amnesia/.local/state/anitails/i3-seed.json 2>&1 || true
 )"
 emit_report "${FAIL_DUMP}"
 exit 1

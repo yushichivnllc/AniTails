@@ -1,0 +1,21 @@
+#!/bin/sh
+# AniTails — X server launcher for the getty@tty1 autologin session.
+#
+# `startx` prefers ~/.xserverrc over /etc/X11/xinit/xserverrc, so this seeded
+# file decides how the Xorg server is started. It is verified against
+# MANIFEST.sha256 by /usr/local/lib/anitails-i3-seed before it is written.
+#
+# Why the VT matters (rootless Xorg):
+#   * AniTails has no display manager and no root-owned greeter. Xorg starts
+#     through Xorg.wrap / systemd-logind and takes DRM/master rights for the
+#     foreground session only.
+#   * `vt$XDG_VTNR` (exported by pam_systemd for the getty autologin session,
+#     i.e. vt1) keeps Xorg on the VT the live user actually logged in on.
+#     Without it Xorg tries to allocate/switch another VT, which needs root, so
+#     the server either re-execs itself privileged or stops with SIGTTOU and no
+#     graphical session ever appears.
+#   * `-nolisten tcp` matches the packaged default: the live system must never
+#     open a TCP X transport.
+#
+# xinit appends its own arguments (`:0`, `-auth <cookie file>`, …).
+exec /usr/bin/X -nolisten tcp "vt${XDG_VTNR:-1}" "$@"

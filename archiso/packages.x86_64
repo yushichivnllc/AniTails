@@ -83,7 +83,9 @@ xorg-xauth
 xorg-xrdb
 xorg-xsetroot
 xorg-xrandr
-xorg-xcursor
+# X cursor *library*. Arch has no `xorg-xcursor` package; the Xcursor client
+# library is `libxcursor` in [extra]. `xorg-xcursorgen` is build-time only.
+libxcursor
 i3-gaps
 polkit
 
@@ -132,7 +134,10 @@ kvantum
 kvantum-qt5
 nwg-look
 adwaita-icon-theme
-bibata-cursor-theme
+# Cursor theme from official [extra]. `bibata-cursor-theme` is AUR-only and the
+# AniTails no-AUR rule forbids it; `capitaine-cursors` is the closest official
+# flat/crisp substitute and is the theme referenced by .Xresources + gtk-3.0.
+capitaine-cursors
 xsettingsd
 
 # --- Audio / Bluetooth / Power / Removable Media Applets ---
@@ -161,7 +166,6 @@ ibus-unikey
 
 # --- Desktop Userland Libraries & Fonts ---
 python-pyqt6
-python-pulsectl
 python-requests
 zenity
 noto-fonts

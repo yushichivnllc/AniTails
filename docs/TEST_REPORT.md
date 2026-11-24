@@ -117,11 +117,11 @@ bất kỳ tệp nào. Bài **T-36** chặn tái diễn. Bằng chứng: `git cl
 ## 5. Kiểm Thử Chuyển Sang i3-gaps trên Xorg (`tests/test_i3_dotfiles.py`, 15 bài — `2026-11-22`)
 
 Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
-`scripts/sync-i3-dotfiles.py --check` xác minh 9 tệp dotfiles trên đĩa, và `anitails-i3-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed/fail-closed.
+`scripts/sync-i3-dotfiles.py --check` xác minh 10 tệp dotfiles trên đĩa, và `anitails-i3-seed` được thực thi trong `$HOME` tạm để chứng minh hành vi seed/không-seed/fail-closed.
 
 | Mã | Nội dung | Trạng thái | Bằng chứng |
 |---|---|---|---|
-| **I-01** | Manifest dotfiles tự viết khớp `MANIFEST.sha256` (9 tệp) | **`PASS`** | `OK: 9 vendored dotfiles match MANIFEST.sha256` |
+| **I-01** | Manifest dotfiles tự viết khớp `MANIFEST.sha256` (10 tệp) | **`PASS`** | `PASS: 10 file(s) verified against MANIFEST.sha256` |
 | **I-02** | Provenance: `anitails:local` / `GPL-3.0-or-later`, không chứa HyDE/AniDE | **`PASS`** | `UPSTREAM.json` project/license |
 | **I-03** | Không có blob ELF trong cây vendor | **`PASS`** | Quét magic `\x7fELF`: 0 khớp |
 | **I-04** | Không có dconf/GNOME/dconf-paths trong cây vendor | **`PASS`** | Quét theo đường dẫn |
@@ -146,7 +146,7 @@ Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
 
 ---
 
-## 6. STEP 2 — UX/UI Polish & Wallpaper (`tests/test_i3_dotfiles.py`, 18 bài — `2026-11-22`)
+## 6. STEP 2 — UX/UI Polish & Wallpaper (`tests/test_i3_dotfiles.py`, 23 bài — `2026-11-22`)
 
 | Mã | Nội dung | Trạng thái |
 |---|---|---|
@@ -156,3 +156,22 @@ Bộ kiểm thử này chạy **thật** (không mock) phần lớn logic mới:
 | **W-01** | Wallpaper `anitails-default.png` hợp lệ (magic `\x89PNG`, 1376×768, Midnight Aurora) | **`PASS`** |
 
 Đây là UX bổ sung chứ không thay đổi lớp bảo mật NFT/LUKS/netns; mọi bất biến fail-closed giữ nguyên.
+
+### 6.1. Cổng khởi động QEMU theo phiên i3/Xorg (`TestI3SessionBootGate`, 5 bài — `2026-11-22`)
+
+Sau khi GDM/GNOME bị gỡ, `anitails-virtio-boot-status` vẫn chờ `gdm.service` + `gnome-session`,
+nên mọi lần chạy `mkarchiso` thành công đều kết thúc bằng `ANITAILS_OS_BOOT_FAILED`. Năm bài
+kiểm thử dưới đây chốt lại cổng khởi động mới:
+
+| Mã | Nội dung | Trạng thái |
+|---|---|---|
+| **B-01** | `anitails-virtio-boot-status` thăm dò `Xorg` + `i3` (chỉ dòng mã, không tính chú thích) và **không** còn `gdm`/`gnome-session`/`gnome-shell` | **`PASS`** |
+| **B-02** | Unit `anitails-virtio-boot-status.service` giữ `ConditionVirtualization=vm` | **`PASS`** |
+| **B-03** | `scripts/ci-boot-test-iso.sh` không còn chờ GDM/GNOME | **`PASS`** |
+| **B-04** | `Configs/.xserverrc` có bit `+x`, ghim `vt${XDG_VTNR:-1}` và `-nolisten tcp` (Xorg rootless trên VT1) | **`PASS`** |
+| **B-05** | `i3` config không còn chỉ thị sai (`workspace_layouts`, `exit i3`, `move container to workspace to the left`) và không có `bindsym` trùng phím | **`PASS`** |
+
+Ngoài ra `test_packages_drop_hyprland_and_keep_i3_stack` chốt danh sách gói: `xorg-xcursor`,
+`bibata-cursor-theme`, `python-pulsectl` (không tồn tại trên Arch / chỉ có trên AUR) bị cấm,
+`libxcursor` + `capitaine-cursors` (đều thuộc `[extra]`) phải có mặt — đây chính là nguyên nhân
+`pacstrap` báo `error: target not found` trong lần build ISO trước.

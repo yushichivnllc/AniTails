@@ -102,13 +102,15 @@ for iso in "${ISO_FILES[@]}"; do
             "squashfs-root/etc/systemd/system/display-manager.service" \
             "squashfs-root/etc/systemd/system/systemd-firstboot.service" \
             "squashfs-root/etc/systemd/system/sysinit.target.wants/anitails-virtio-boot-status.service" \
+            "squashfs-root/etc/X11/xinit/anitails-i3.sh" \
+            "squashfs-root/usr/share/anitails/i3/Configs/.xserverrc" \
             "squashfs-root/etc/modprobe.d/90-all-net-blacklist.conf"; do
             if ! grep -Fxq "${req_rootfs_entry}" <<<"${sfs_list}"; then
                 echo "FAIL: Missing post-pacstrap entry '${req_rootfs_entry}' inside airootfs.sfs of ${iso}!" >&2
                 exit 1
             fi
         done
-        echo "[verify-iso] Verified post-pacstrap finalization & GDM/firewall/watchdog symlinks inside airootfs.sfs."
+        echo "[verify-iso] Verified post-pacstrap finalization, masked display-manager, i3/Xorg session & firewall/watchdog symlinks inside airootfs.sfs."
     fi
 done
 

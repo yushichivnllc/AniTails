@@ -6,7 +6,7 @@ AniDE/HyDE (Wayland, ~123.000 dòng vendor) bằng **i3-gaps trên Xorg (X11)** 
 không còn display manager: `getty@tty1` tự đăng nhập `amnesia` → `startx` →
 `i3` (Xorg native).
 
-- Các tệp cấu hình gốc (9 tệp, ~500 dòng) nằm tại
+- Các tệp cấu hình gốc (10 tệp, ~520 dòng) nằm tại
   `archiso/airootfs/usr/share/anitails/i3/Configs/**`, ghim **commit + SHA-256
   từng tệp** (`MANIFEST.sha256`, do `scripts/sync-i3-dotfiles.py` sinh ra), và
   được **seed** Offline vào `$HOME` bởi `anitails-i3-seed` (fail-closed nếu
@@ -58,24 +58,25 @@ Hyprland + AniDE/HyDE nặng (~123K dòng vendor, 485 tệp, commit ghim, manife
 
 | Nhóm | Gói |
 |---|---|
-| Compositor & phiên | `xorg-server`, `xorg-xinit`, `xorg-xauth`, `xorg-xrdb`, `xorg-xsetroot`, `xorg-xrandr`, `xorg-xcursor`, `i3-gaps`, `polkit` |
+| Compositor & phiên | `xorg-server`, `xorg-xinit`, `xorg-xauth`, `xorg-xrdb`, `xorg-xsetroot`, `xorg-xrandr`, `libxcursor`, `i3-gaps`, `polkit` |
 | Shell desktop | `waybar`, `wofi`, `dunst`, `libnotify`, `cliphist`, `scrot`, `feh` |
 | Terminals/Files/Media | `kitty`, `dolphin`, `ark`, `kde-cli-tools`, `ffmpegthumbs`, `qt5-imageformats`, `kimageformats`, `kate`, `mpv`, `celluloid`, `imv`, `zathura`, `zathura-pdf-mupdf`, `qalculate-qt`, `vim`, `fzf` |
-| Theming | `gtk3`, `gtk4`, `qt5ct`, `qt6ct`, `nwg-look`, `adwaita-icon-theme`, `bibata-cursor-theme`, `xsettingsd` |
+| Theming | `gtk3`, `gtk4`, `qt5ct`, `qt6ct`, `nwg-look`, `adwaita-icon-theme`, `capitaine-cursors`, `xsettingsd` |
 | Bảo vệ quyền riêng tư | `ibus`, `ibus-unikey`, `keepassxc`, `mat2`, `electrum`, `thunderbird`, `onionshare` |
 
 ### 3.2. Cấu trúc thư mục
 
 | Đường dẫn | Nội dung |
 |---|---|
-| `archiso/airootfs/usr/share/anitails/i3/` | 9 tệp design (`Configs/`) + `MANIFEST.sha256` + `UPSTREAM.json` |
+| `archiso/airootfs/usr/share/anitails/i3/` | 10 tệp design (`Configs/`) + `MANIFEST.sha256` + `UPSTREAM.json` |
 | `archiso/airootfs/usr/local/lib/anitails-i3-seed` | Seeder offline, fail-closed |
 | `archiso/airootfs/usr/local/lib/anitails-i3-bar.sh` | Khởi động waybar chính sách |
 | `archiso/airootfs/usr/local/lib/anitails-i3-desktop/lockscreen-disabled.sh` | Thông báo tắt khóa (Tails-style) |
 | `archiso/airootfs/usr/local/bin/anitails-i3-session` | Launcher (`startx` → `i3-gaps`), fail-closed |
 | `archiso/airootfs/usr/local/bin/anitails-i3-doctor` | Báo cáo thành phần i3 + seed state |
 | `archiso/airootfs/usr/local/bin/anitails-screenshot` | Screenshot `scrot` + hộp thoại cảnh báo |
-| `archiso/airootfs/etc/X11/xinit/anitails-i3.sh` | Wrapper Xorg (gọi `startx`) |
+| `archiso/airootfs/etc/X11/xinit/anitails-i3.sh` | Wrapper Xorg (client mà `startx` chạy) |
+| `Configs/.xserverrc` | `$HOME/.xserverrc` đã seed — ghim Xorg vào `vt$XDG_VTNR` để chạy **rootless** trên VT1 |
 
 ---
 
@@ -87,16 +88,24 @@ Hyprland + AniDE/HyDE nặng (~123K dòng vendor, 485 tệp, commit ghim, manife
         └── anitails-i3-session
              ├── anitails-i3-seed --quiet  (verify MANIFEST.sha256 trước, fail-closed)
              └── startx /etc/X11/xinit/anitails-i3.sh
+                  ├── ~/.xserverrc -> /usr/bin/X -nolisten tcp vt$XDG_VTNR  (rootless, cùng VT1)
                   ├── xsetroot -solid '#0a0d16'
                   ├── feh --bg-fill ... (best-effort)
                   └── exec /usr/bin/i3
-                       ├── exec_always xrdb -merge ~/.Xresources  (cursor Bibata-Modern-Ice, DPI 96)
+                       ├── exec_always xrdb -merge ~/.Xresources  (cursor capitaine-cursors, DPI 96)
                        ├── exec_always anitails-i3-bar.sh       (waybar)
                        └── exec_always dunst
 ```
 
 - Không greeter, không display manager, không root GUI.
 - `anitails-i3-session` poweroff khi i3 thoát sạch; 3 lần crash → drop shell dự phòng (không loopvô hạn).
+- Xorg chạy **rootless**: `~/.xserverrc` (seed từ `Configs/.xserverrc`, đã kiểm `MANIFEST.sha256`)
+  truyền `vt$XDG_VTNR` để server ở lại đúng VT mà `pam_systemd` đã cấp cho phiên autologin.
+  Thiếu tham số này Xorg phải `VT_ACTIVATE` một VT khác — thao tác cần root — nên hoặc tự
+  re-exec bằng quyền root, hoặc dừng với `SIGTTOU` và không có phiên đồ hoạ nào xuất hiện.
+  `-nolisten tcp` giữ nguyên mặc định của gói: live system không mở transport X qua TCP.
+- Phím tắt không gian làm việc: `SUPER + <1..9>` chuyển workspace, `SUPER + CTRL + <1..9>`
+  đưa cửa sổ đang focus sang workspace đó (`SUPER + SHIFT + 4` dành cho chụp màn hình kiểu macOS).
 
 ---
 
@@ -132,7 +141,7 @@ Three UX/UI additions ship with this i3-gaps stack:
 | Vật lý trên màn hình | Cách ly theo app (mỗi app 1 screen) | X11 shared display — mọi app đọc được nội dung màn hình của app khác |
 | Phù hợp AniTails | Rất cao (nhưng nặng) | Trung bình — chấp nhận rủi ro X11 khi muốn giảm độ phức tạp |
 | Kích thước ISO | Vùng lớn (~123K dòng vendor) | Nhỏ (~500 dòng tự viết) |
-| Offline/kiểm toán | Khó (485 hash + commit ghim) | Dễ (9 tệp, 1 manifest) |
+| Offline/kiểm toán | Khó (485 hash + commit ghim) | Dễ (10 tệp, 1 manifest) |
 | Ảnh nền/screenshot | `hyprpaper` (trong cluster) | `feh` + `scrot` (tool nhẹ, X11 chuẩn) |
 
 Nếu muốn hoàn nguyên cho mục đích bảo mật cao hơn, sway/wlroots là hướng đi

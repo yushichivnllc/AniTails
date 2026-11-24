@@ -289,10 +289,15 @@
       "minimum_version": "1.5.0-1",
       "note": "xrandr — monitor layout on the display server"
     },
-    "xorg-xcursor": {
+    "capitaine-cursors": {
       "repo": "extra",
-      "minimum_version": "1.1.14-1",
-      "note": "X cursor theme support (Bibata-Modern-Ice)"
+      "minimum_version": "4-3",
+      "note": "Cursor theme shipped instead of the AUR-only Bibata-Modern-Ice (AniTails ships no AUR packages)"
+    },
+    "libxcursor": {
+      "repo": "extra",
+      "minimum_version": "1.2.3-1",
+      "note": "Xcursor client library from [extra] (there is no `xorg-xcursor` package) — `.Xresources` Xcursor.theme/Xcursor.size"
     },
     "waybar": {
       "repo": "extra",
