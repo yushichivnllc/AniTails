@@ -247,9 +247,21 @@ for attempt in 1 2 3 4; do
     sleep $((attempt * 5))
 done
 pacman-key --populate archlinux
+# Why `-Syyuu` (sync twice, upgrade *allowing downgrades*) instead of `-Syu`:
+# the builder runs in the rolling `archlinux:base-devel` container image, which
+# is always newer than the frozen archive snapshot pinned in
+# `archiso/mirrorlist.snapshot`. A plain `-Syu` cannot resolve that state: it
+# refuses to downgrade the image's packages but must install the snapshot's
+# `openssl`/`glibc`/`systemd`, so pacman aborts with
+#   "installing openssl (X) breaks dependency 'libcrypto.so=…' required by pacman"
+# and the whole ISO build dies before `mkarchiso`. `-uu` realigns every
+# installed package with the pinned snapshot, which is also what `makepkg` needs:
+# the locally built `[anitails-local]` packages then link against exactly the
+# glibc/openssl that `mkarchiso` installs into the ISO, so there is no
+# partial-upgrade ABI mismatch and the snapshot stays byte-for-byte reproducible.
 for attempt in 1 2 3 4; do
     rm -f /var/cache/pacman/pkg/*.part
-    if pacman -Syu --noconfirm --needed \
+    if pacman -Syyuu --noconfirm --needed \
         archiso base-devel bc binutils ccache cpio curl dosfstools edk2-ovmf gettext git \
         gnupg kmod libelf libisoburn mtools nftables openssl pahole perl python \
         python-yaml rsync squashfs-tools syslinux tar xxhash xz zlib zstd; then
@@ -259,7 +271,7 @@ for attempt in 1 2 3 4; do
         echo "ERROR: Builder dependency installation failed after 4 attempts." >&2
         exit 1
     fi
-    echo "::warning::Builder dependency pacman -Syu attempt ${attempt}/4 failed; retrying..." >&2
+    echo "::warning::Builder dependency pacman -Syyuu attempt ${attempt}/4 failed; retrying..." >&2
     sleep $((attempt * 5))
 done
 
